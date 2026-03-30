@@ -59,7 +59,7 @@ SSH_PORT=${SSH_PORT:-22}
 if [[ "$SSH_PORT" != "22" ]]; then
     pass "Port SSH zmieniony: $SSH_PORT"
 else
-    fail "Port SSH domyślny: 22"
+    warn "Port SSH domyślny: 22 (zmiana opcjonalna — niektóre hostingi blokują inne porty)"
 fi
 
 PASS_AUTH=$(grep -E "^PasswordAuthentication" /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
@@ -73,10 +73,17 @@ else
     fail "Logowanie hasłem włączone"
 fi
 
-if [[ -f /root/.ssh/authorized_keys ]] && [[ -s /root/.ssh/authorized_keys ]]; then
-    KEY_COUNT=$(wc -l < /root/.ssh/authorized_keys)
-    pass "Klucze SSH skonfigurowane ($KEY_COUNT kluczy)"
-else
+# Sprawdź klucze SSH — u aktualnego usera LUB roota
+FOUND_KEYS=false
+for CHECK_DIR in "$HOME/.ssh" /root/.ssh /home/*/.ssh; do
+    if [[ -f "$CHECK_DIR/authorized_keys" ]] && [[ -s "$CHECK_DIR/authorized_keys" ]]; then
+        KEY_COUNT=$(wc -l < "$CHECK_DIR/authorized_keys")
+        pass "Klucze SSH skonfigurowane ($KEY_COUNT kluczy w $CHECK_DIR)"
+        FOUND_KEYS=true
+        break
+    fi
+done
+if [[ "$FOUND_KEYS" == "false" ]]; then
     fail "Brak kluczy SSH"
 fi
 

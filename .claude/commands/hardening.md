@@ -2,6 +2,15 @@
 
 Zabezpiecz serwer VPS automatycznie. Użytkownik podaje IP, port, login i hasło — Claude robi resztę.
 
+## ZASADY BEZPIECZEŃSTWA (NIGDY NIE ŁAMAĆ)
+
+1. **NIE zmieniaj portu SSH** — hostingi (Hostinger, DigitalOcean) często blokują niestandardowe porty. Zostawiamy port jaki jest.
+2. **UFW: ZAWSZE `ufw allow SSH_PORT/tcp` PRZED `ufw enable`** — inaczej stracisz dostęp.
+3. **ZAWSZE testuj nowego usera PRZED wyłączeniem root** — osobnym połączeniem SSH.
+4. **Po KAŻDEJ zmianie SSH** — testuj połączenie zanim zrobisz cokolwiek dalej.
+5. **Jeśli coś failuje — STOP.** Pokaż error, zapytaj użytkownika. Nie próbuj naprawiać na ślepo.
+6. **ClamAV — NIE instaluj domyślnie.** Tylko gdy użytkownik wyraźnie poprosi i ma >=2GB RAM.
+
 ## Workflow
 
 ### Faza 0: Zbierz dane
@@ -22,7 +31,7 @@ which sshpass
 ```
 
 Jeśli nie ma — zainstaluj automatycznie:
-- **macOS:** `brew install sshpass` (jeśli brew nie ma sshpass, użyj: `brew install esolitos/ipa/sshpass`)
+- **macOS:** `brew install esolitos/ipa/sshpass`
 - **Linux (Ubuntu/Debian):** `sudo apt-get install -y sshpass`
 - **Linux (Fedora/RHEL):** `sudo dnf install -y sshpass`
 
@@ -40,12 +49,12 @@ Jeśli nie ma — wygeneruj:
 ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
 ```
 
-Dodaj klucz serwera do known_hosts (żeby nie pytał o fingerprint):
+Dodaj klucz serwera do known_hosts:
 ```bash
 ssh-keyscan -p PORT IP >> ~/.ssh/known_hosts 2>/dev/null
 ```
 
-Skopiuj klucz na serwer używając hasła:
+Skopiuj klucz na serwer:
 ```bash
 sshpass -p 'HASLO' ssh-copy-id -p PORT -o StrictHostKeyChecking=no LOGIN@IP
 ```
@@ -55,66 +64,69 @@ Przetestuj połączenie BEZ hasła:
 ssh -p PORT LOGIN@IP "echo 'SSH KEY OK'"
 ```
 
-Jeśli test nie przejdzie — powiedz użytkownikowi co poszło nie tak. Nie idź dalej.
+Jeśli test nie przejdzie — STOP. Nie idź dalej.
 
 **Od tego momentu NIE używaj już hasła — tylko klucz SSH.**
 
-### Faza 3: Przygotowanie serwera
+### Faza 3: Audyt
 
-Skopiuj skrypty na serwer:
+Skopiuj skrypt audytu i uruchom:
 ```bash
-scp -P PORT scripts/*.sh LOGIN@IP:/tmp/
-```
-
-Uruchom audyt (zapisz do pliku na wypadek uciętego outputu):
-```bash
+scp -P PORT scripts/audit.sh LOGIN@IP:/tmp/
 ssh -p PORT LOGIN@IP "bash /tmp/audit.sh 2>&1 | tee /tmp/audit-result.txt"
 ```
 
-Jeśli output się ucina — pobierz plik:
+Jeśli output się ucina:
 ```bash
 ssh -p PORT LOGIN@IP "cat /tmp/audit-result.txt"
 ```
 
-Przeanalizuj output. Powiedz użytkownikowi co jest OK, co brakuje. Wymień konkretne kroki do zrobienia.
+Powiedz użytkownikowi co jest OK, co brakuje.
 
-### Faza 4: Hardening — krok po kroku
+### Faza 4: Hardening
 
-Dla każdego kroku który jest FAIL w audycie, uruchom skrypt zdalnie. Skrypty są interaktywne (pytają o dane), więc **NIE uruchamiaj ich przez `ssh "bash script.sh"`** — to nie zadziała z interaktywnymi promptami.
-
-Zamiast tego wykonuj komendy ręcznie na serwerze, symulując to co skrypty robią:
+Wykonuj TYLKO kroki które są FAIL/WARN w audycie. Kolejność ma znaczenie.
 
 #### Krok 1: Stworzenie użytkownika (jeśli FAIL)
+
+Zapytaj użytkownika o nazwę nowego usera.
+
 ```bash
-# Zapytaj użytkownika o nazwę nowego usera
 ssh -p PORT LOGIN@IP "adduser --disabled-password --gecos '' NOWY_USER"
 ssh -p PORT LOGIN@IP "usermod -aG sudo NOWY_USER"
-ssh -p PORT LOGIN@IP "mkdir -p /home/NOWY_USER/.ssh && cp /root/.ssh/authorized_keys /home/NOWY_USER/.ssh/authorized_keys && chown -R NOWY_USER:NOWY_USER /home/NOWY_USER/.ssh && chmod 700 /home/NOWY_USER/.ssh && chmod 600 /home/NOWY_USER/.ssh/authorized_keys"
-ssh -p PORT LOGIN@IP "echo 'NOWY_USER ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/NOWY_USER && chmod 440 /etc/sudoers.d/NOWY_USER"
+ssh -p PORT LOGIN@IP "mkdir -p /home/NOWY_USER/.ssh"
+ssh -p PORT LOGIN@IP "cp ~/.ssh/authorized_keys /home/NOWY_USER/.ssh/authorized_keys"
+ssh -p PORT LOGIN@IP "chown -R NOWY_USER:NOWY_USER /home/NOWY_USER/.ssh"
+ssh -p PORT LOGIN@IP "chmod 700 /home/NOWY_USER/.ssh"
+ssh -p PORT LOGIN@IP "chmod 600 /home/NOWY_USER/.ssh/authorized_keys"
+ssh -p PORT LOGIN@IP "echo 'NOWY_USER ALL=(ALL) NOPASSWD:ALL' | tee /etc/sudoers.d/NOWY_USER"
+ssh -p PORT LOGIN@IP "chmod 440 /etc/sudoers.d/NOWY_USER"
 ```
 
-Przetestuj logowanie nowym userem:
+**STOP — TEST:** Przetestuj logowanie nowym userem:
 ```bash
 ssh -p PORT NOWY_USER@IP "whoami && sudo whoami"
 ```
 
-Jeśli OK — wyłącz root login:
+Jeśli oba zwracają poprawne wartości → wyłącz root:
 ```bash
 ssh -p PORT NOWY_USER@IP "sudo sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config"
 ssh -p PORT NOWY_USER@IP "sudo systemctl restart ssh"
 ```
 
-**Od tego momentu używaj NOWY_USER zamiast root.**
-
-#### Krok 2: SSH hardening (jeśli FAIL)
-Zapytaj użytkownika o nowy port SSH (np. 2222).
+**TEST:** Sprawdź czy nowy user nadal działa po restarcie SSH:
 ```bash
-ssh -p PORT USER@IP "sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak.$(date +%Y%m%d)"
+ssh -p PORT NOWY_USER@IP "echo 'STILL OK'"
 ```
 
-Ustaw parametry przez sed (każdy osobnym poleceniem):
+**Od tego momentu używaj NOWY_USER.**
+
+#### Krok 2: SSH hardening (jeśli FAIL)
+
+**NIE zmieniaj portu SSH.** Tylko parametry bezpieczeństwa:
+
 ```bash
-ssh -p PORT USER@IP "sudo sed -i 's/^#\?Port .*/Port NOWY_PORT/' /etc/ssh/sshd_config"
+ssh -p PORT USER@IP "sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak"
 ssh -p PORT USER@IP "sudo sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication no/' /etc/ssh/sshd_config"
 ssh -p PORT USER@IP "sudo sed -i 's/^PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config.d/50-cloud-init.conf 2>/dev/null || true"
 ssh -p PORT USER@IP "sudo sed -i 's/^#\?PermitEmptyPasswords .*/PermitEmptyPasswords no/' /etc/ssh/sshd_config"
@@ -124,44 +136,58 @@ ssh -p PORT USER@IP "sudo sed -i 's/^#\?ClientAliveInterval .*/ClientAliveInterv
 ssh -p PORT USER@IP "sudo sed -i 's/^#\?ClientAliveCountMax .*/ClientAliveCountMax 2/' /etc/ssh/sshd_config"
 ```
 
-Sprawdź konfigurację przed restartem:
+Test konfiguracji:
 ```bash
 ssh -p PORT USER@IP "sudo sshd -t"
 ```
 
-Jeśli OK — dodaj nowy port do firewalla PRZED restartem SSH:
+Jeśli OK — restart:
 ```bash
-ssh -p PORT USER@IP "sudo ufw allow NOWY_PORT/tcp"
 ssh -p PORT USER@IP "sudo systemctl restart ssh"
 ```
 
-Przetestuj nowy port:
+**TEST:** Sprawdź czy SSH działa:
 ```bash
-ssh -p NOWY_PORT USER@IP "echo 'NEW PORT OK'"
+ssh -p PORT USER@IP "echo 'SSH OK'"
 ```
 
-**Od tego momentu używaj NOWY_PORT.**
-
 #### Krok 3: Firewall UFW (jeśli FAIL)
+
+**KRYTYCZNE:** Dodaj port SSH PRZED włączeniem firewalla!
+
 ```bash
 ssh -p PORT USER@IP "sudo apt-get install -y -qq ufw"
 ssh -p PORT USER@IP "sudo ufw default deny incoming"
 ssh -p PORT USER@IP "sudo ufw default allow outgoing"
-ssh -p PORT USER@IP "sudo ufw allow SSH_PORT/tcp"
+ssh -p PORT USER@IP "sudo ufw allow PORT/tcp"
 ssh -p PORT USER@IP "sudo ufw allow 80/tcp"
 ssh -p PORT USER@IP "sudo ufw allow 443/tcp"
+```
+
+Sprawdź reguły PRZED włączeniem:
+```bash
+ssh -p PORT USER@IP "sudo ufw show added"
+```
+
+Upewnij się że port SSH (PORT) jest na liście! Dopiero wtedy:
+```bash
 ssh -p PORT USER@IP "echo 'y' | sudo ufw enable"
-ssh -p PORT USER@IP "sudo ufw status"
+```
+
+**TEST:** Natychmiast sprawdź czy SSH działa:
+```bash
+ssh -p PORT USER@IP "echo 'UFW OK' && sudo ufw status"
 ```
 
 #### Krok 4: Fail2ban (jeśli FAIL)
+
 ```bash
 ssh -p PORT USER@IP "sudo apt-get install -y -qq fail2ban"
 ```
 
-Stwórz konfigurację:
+Konfiguracja — użyj AKTUALNEGO portu SSH (PORT):
 ```bash
-ssh -p PORT USER@IP "sudo tee /etc/fail2ban/jail.local > /dev/null << 'JAILEOF'
+ssh -p PORT USER@IP "sudo bash -c 'cat > /etc/fail2ban/jail.local << JAILEOF
 [DEFAULT]
 bantime = 86400
 findtime = 3600
@@ -170,81 +196,86 @@ banaction = ufw
 
 [sshd]
 enabled = true
-port = SSH_PORT
+port = PORT
 filter = sshd
 logpath = /var/log/auth.log
-JAILEOF"
-ssh -p PORT USER@IP "sudo systemctl enable fail2ban && sudo systemctl restart fail2ban"
+JAILEOF'"
+ssh -p PORT USER@IP "sudo systemctl enable fail2ban"
+ssh -p PORT USER@IP "sudo systemctl restart fail2ban"
+```
+
+**TEST:**
+```bash
 ssh -p PORT USER@IP "sudo fail2ban-client status sshd"
 ```
 
-#### Krok 5: Wyłącz IPv6 (jeśli FAIL)
+#### Krok 5: Wyłącz IPv6 (jeśli WARN)
+
 ```bash
-ssh -p PORT USER@IP "sudo tee /etc/sysctl.d/99-disable-ipv6.conf > /dev/null << 'EOF'
+ssh -p PORT USER@IP "sudo bash -c 'cat > /etc/sysctl.d/99-disable-ipv6.conf << EOF
 net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 net.ipv6.conf.lo.disable_ipv6 = 1
-EOF"
+EOF'"
 ssh -p PORT USER@IP "sudo sysctl -p /etc/sysctl.d/99-disable-ipv6.conf"
 ```
 
-#### Krok 6: ClamAV (jeśli FAIL)
-Zapytaj użytkownika — ClamAV wymaga ~2GB RAM. Jeśli mały VPS, pomiń.
-```bash
-ssh -p PORT USER@IP "sudo apt-get install -y -qq clamav clamav-daemon"
-ssh -p PORT USER@IP "sudo systemctl stop clamav-freshclam && sudo freshclam && sudo systemctl start clamav-freshclam"
-ssh -p PORT USER@IP "sudo systemctl enable clamav-freshclam"
-```
+#### Krok 6: Log monitoring (jeśli WARN)
 
-#### Krok 7: Log monitoring (jeśli FAIL)
 ```bash
 ssh -p PORT USER@IP "sudo apt-get install -y -qq logwatch"
 ssh -p PORT USER@IP "sudo mkdir -p /etc/logwatch/conf /var/log/logwatch"
 ```
 
-#### Krok 8: Auto-updates (jeśli FAIL)
+#### Krok 7: Auto-updates (jeśli FAIL)
+
 ```bash
 ssh -p PORT USER@IP "sudo apt-get install -y -qq unattended-upgrades apt-listchanges"
-ssh -p PORT USER@IP "sudo tee /etc/apt/apt.conf.d/20auto-upgrades > /dev/null << 'EOF'
+ssh -p PORT USER@IP "sudo bash -c 'cat > /etc/apt/apt.conf.d/20auto-upgrades << EOF
 APT::Periodic::Update-Package-Lists \"1\";
 APT::Periodic::Unattended-Upgrade \"1\";
 APT::Periodic::AutocleanInterval \"7\";
-EOF"
+EOF'"
+```
+
+#### Krok 8: ClamAV — TYLKO na życzenie
+
+**NIE instaluj domyślnie.** Zapytaj użytkownika: "ClamAV (antywirus) wymaga ok. 2GB RAM. Twój serwer ma X RAM. Chcesz zainstalować?"
+
+Jeśli tak:
+```bash
+ssh -p PORT USER@IP "sudo apt-get install -y -qq clamav clamav-daemon"
+ssh -p PORT USER@IP "sudo systemctl stop clamav-freshclam"
+ssh -p PORT USER@IP "sudo freshclam"
+ssh -p PORT USER@IP "sudo systemctl start clamav-freshclam"
+ssh -p PORT USER@IP "sudo systemctl enable clamav-freshclam"
 ```
 
 ### Faza 5: Weryfikacja
 
 Uruchom audyt ponownie:
 ```bash
-ssh -p FINAL_PORT FINAL_USER@IP "bash /tmp/audit.sh"
+ssh -p PORT FINAL_USER@IP "bash /tmp/audit.sh 2>&1 | tee /tmp/audit-result.txt"
 ```
 
-Pokaż porównanie: co było FAIL, co jest teraz PASS.
+Pokaż porównanie: co było FAIL → co jest teraz PASS.
 
-Powiedz: "Twój serwer jest zabezpieczony! Oto podsumowanie zmian:"
+Podsumowanie zmian:
 - Nowy użytkownik: X
-- Port SSH: X
 - Root login: wyłączony
+- Logowanie hasłem: wyłączone
 - Firewall: aktywny
-- Fail2ban: aktywny
-- itd.
+- Fail2ban: aktywny (port PORT)
+- IPv6: wyłączone
+- Auto-updates: aktywne
 
-### Faza 6: Aktualizacja SSH config (lokalnie)
+### Faza 6: SSH config (lokalnie)
 
-Zapytaj użytkownika czy chce dodać alias do ~/.ssh/config:
+Zapytaj użytkownika czy chce dodać alias do `~/.ssh/config`:
 ```
-Host nazwa
+Host moj-vps
     HostName IP
     User NOWY_USER
-    Port NOWY_PORT
+    Port PORT
     IdentityFile ~/.ssh/id_ed25519
 ```
-
-## WAŻNE
-
-- **Hasło** — użyj TYLKO do sshpass w fazie 1. Po skopiowaniu klucza SSH, nigdy więcej nie używaj hasła.
-- **Przed zmianą portu SSH** — ZAWSZE najpierw dodaj nowy port do UFW, potem restart SSH.
-- **Przed wyłączeniem root** — ZAWSZE przetestuj nowego usera.
-- **Bash guard** — komendy SSH mogą być blokowane przez bash-guard hook. Jeśli tak, poinformuj użytkownika.
-- Każdy krok raportuj: co robisz, co się udało, co dalej.
-- Jeśli coś failuje — nie idź dalej. Pokaż error i zapytaj co robić.
