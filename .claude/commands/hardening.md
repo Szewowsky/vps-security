@@ -32,8 +32,9 @@ Ten pattern omija bash-guard bo lokalna komenda to tylko `scp` i `ssh "bash"`, n
 
 Zapytaj użytkownika (AskUserQuestion) o:
 - **IP serwera**
-- **Port SSH** (domyślnie 22)
+- **Port SSH** (domyślnie 22 — wpisz 22 jako default w opcji)
 - **Login** (domyślnie root)
+- **Nazwa nowego użytkownika** (np. robert, admin — ZAWSZE pytaj, nie pomijaj!)
 - **Hasło do serwera** (jeśli użytkownik mówi że ma klucz SSH — pomiń hasło i pomiń fazę 1 i 2)
 
 Zapisz te dane w zmiennych mentalnych — będziesz ich używać w każdym kroku. W komendach poniżej PORT, LOGIN, IP, NOWY_USER itp. to placeholdery — ZAWSZE podstaw faktyczne wartości podane przez użytkownika.
@@ -104,9 +105,7 @@ Wykonuj TYLKO kroki które są FAIL/WARN w audycie. Kolejność ma znaczenie.
 
 #### Krok 1: Stworzenie użytkownika (jeśli FAIL)
 
-Zapytaj użytkownika o nazwę nowego usera.
-
-Nazwa usera MUSI być lowercase (małe litery). Jeśli użytkownik poda wielkie litery — zamień na małe.
+Użyj nazwę usera podaną w Fazie 0. Nazwa MUSI być lowercase (małe litery). Jeśli użytkownik podał wielkie litery — zamień na małe i poinformuj.
 
 ```bash
 ssh -p PORT LOGIN@IP "adduser --disabled-password --gecos '' NOWY_USER"
