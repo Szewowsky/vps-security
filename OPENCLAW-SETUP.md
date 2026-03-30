@@ -37,7 +37,7 @@ docker exec [nazwa] bash -c "cat /data/.openclaw/openclaw.json | sed 's/\"sessio
 docker restart [nazwa]
 ```
 
-10. Wyślij dowolną wiadomość na Telegramie do swojego bota, odpal terminal (konsolę), wejdź ponownie do kontenera i zatwierdź parowanie Telegrama:
+10. Wyślij dowolną wiadomość na Telegramie do swojego bota → odpal terminal (konsolę) → wejdź ponownie do kontenera i zatwierdź parowanie Telegrama:
 ```
 docker exec -it [nazwa] bash
 openclaw pairing list telegram
@@ -53,4 +53,4 @@ docker restart [nazwa]
 
 - **Strefa czasowa:** W pliku `.env` zmień zmienną `TZ` na `Europe/Warsaw`
 - **OpenAI API:** Dodaj zmienną środowiskową `OPENAI_API_KEY` i w polu "Wartość" wpisz klucz API wygenerowany na https://platform.openai.com
-- Zapisz zmiany i poczekaj aż VPS uruchomi się ponownie
+- Zapisz zmiany i poczekaj aż VPS uruchomi się ponownie :)
