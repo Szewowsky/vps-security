@@ -116,6 +116,7 @@ Ustaw parametry przez sed (każdy osobnym poleceniem):
 ```bash
 ssh -p PORT USER@IP "sudo sed -i 's/^#\?Port .*/Port NOWY_PORT/' /etc/ssh/sshd_config"
 ssh -p PORT USER@IP "sudo sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication no/' /etc/ssh/sshd_config"
+ssh -p PORT USER@IP "sudo sed -i 's/^PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config.d/50-cloud-init.conf 2>/dev/null || true"
 ssh -p PORT USER@IP "sudo sed -i 's/^#\?PermitEmptyPasswords .*/PermitEmptyPasswords no/' /etc/ssh/sshd_config"
 ssh -p PORT USER@IP "sudo sed -i 's/^#\?MaxAuthTries .*/MaxAuthTries 3/' /etc/ssh/sshd_config"
 ssh -p PORT USER@IP "sudo sed -i 's/^#\?X11Forwarding .*/X11Forwarding no/' /etc/ssh/sshd_config"
