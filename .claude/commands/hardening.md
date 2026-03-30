@@ -17,11 +17,11 @@ Zabezpiecz serwer VPS automatycznie. Użytkownik podaje IP, port, login i hasło
 
 Zapytaj użytkownika (AskUserQuestion) o:
 - **IP serwera**
-- **Port SSH** (domyślnie 22)
+- **Port SSH** (domyślnie 22, ale uwaga: Hostinger używa 65002 jako domyślny!)
 - **Login** (domyślnie root)
 - **Hasło do serwera**
 
-Zapisz te dane — będziesz ich używać w każdym kroku.
+Zapisz te dane w zmiennych mentalnych — będziesz ich używać w każdym kroku. W komendach poniżej PORT, LOGIN, IP, NOWY_USER itp. to placeholdery — ZAWSZE podstaw faktyczne wartości podane przez użytkownika.
 
 ### Faza 1: Sprawdź zależności
 
@@ -54,14 +54,14 @@ Dodaj klucz serwera do known_hosts:
 ssh-keyscan -p PORT IP >> ~/.ssh/known_hosts 2>/dev/null
 ```
 
-Skopiuj klucz na serwer:
+Skopiuj klucz na serwer (ZAWSZE z `-i` żeby skopiować właściwy klucz):
 ```bash
-sshpass -p 'HASLO' ssh-copy-id -p PORT -o StrictHostKeyChecking=no LOGIN@IP
+sshpass -p 'HASLO' ssh-copy-id -i ~/.ssh/id_ed25519.pub -p PORT -o StrictHostKeyChecking=no LOGIN@IP
 ```
 
-Przetestuj połączenie BEZ hasła:
+Przetestuj połączenie BEZ hasła (z konkretnym kluczem):
 ```bash
-ssh -p PORT LOGIN@IP "echo 'SSH KEY OK'"
+ssh -p PORT -i ~/.ssh/id_ed25519 LOGIN@IP "echo 'SSH KEY OK'"
 ```
 
 Jeśli test nie przejdzie — STOP. Nie idź dalej.
@@ -185,7 +185,7 @@ ssh -p PORT USER@IP "echo 'UFW OK' && sudo ufw status"
 ssh -p PORT USER@IP "sudo apt-get install -y -qq fail2ban"
 ```
 
-Konfiguracja — użyj AKTUALNEGO portu SSH (PORT):
+Konfiguracja — WAŻNE: wstaw FAKTYCZNY numer portu SSH (np. 22), nie placeholder:
 ```bash
 ssh -p PORT USER@IP "sudo bash -c 'cat > /etc/fail2ban/jail.local << JAILEOF
 [DEFAULT]
@@ -196,7 +196,7 @@ banaction = ufw
 
 [sshd]
 enabled = true
-port = PORT
+port = FAKTYCZNY_NUMER_PORTU
 filter = sshd
 logpath = /var/log/auth.log
 JAILEOF'"
