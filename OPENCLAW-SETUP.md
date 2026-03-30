@@ -14,37 +14,31 @@ docker ps
 docker exec -it [nazwa] bash
 ```
 
-5. Wewnątrz kontenera skonfiguruj OpenCode Go:
-```
-openclaw onboard --auth-choice opencode-go
-openclaw onboard --opencode-go-api-key "[TWÓJ KLUCZ API OPENCODE]"
-```
-
-6. Przejdź przez pełny onboarding:
+5. Przejdź przez pełny onboarding:
 ```
 openclaw onboard
 ```
 
-7. Podczas wizarda podaj token Telegrama i klucz Brave API / Tavily API (jeśli chcesz web search)
+6. Podczas wizarda podaj token Telegrama i klucz Brave API / Tavily API (jeśli chcesz web search)
 
-8. W nowym terminalu wyłącz hook session-memory (powoduje błąd Anthropic):
+7. W nowym terminalu wyłącz hook session-memory (powoduje błąd Anthropic):
 ```
 docker exec [nazwa] bash -c "cat /data/.openclaw/openclaw.json | sed 's/\"session-memory\": {\"enabled\": true}/\"session-memory\": {\"enabled\": false}/' > /tmp/openclaw_new.json && cp /tmp/openclaw_new.json /data/.openclaw/openclaw.json"
 ```
 
-9. Zrestartuj kontener:
+8. Zrestartuj kontener:
 ```
 docker restart [nazwa]
 ```
 
-10. Wyślij dowolną wiadomość na Telegramie do swojego bota → odpal terminal (konsolę) → wejdź ponownie do kontenera i zatwierdź parowanie Telegrama:
+9. Wyślij dowolną wiadomość na Telegramie do swojego bota → odpal terminal (konsolę) → wejdź ponownie do kontenera i zatwierdź parowanie Telegrama:
 ```
 docker exec -it [nazwa] bash
 openclaw pairing list telegram
 openclaw pairing approve telegram [KOD]
 ```
 
-11. Zrestartuj kontener:
+10. Otwórz nowy terminal i zrestartuj kontener:
 ```
 docker restart [nazwa]
 ```
