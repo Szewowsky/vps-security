@@ -14,7 +14,21 @@ Zapytaj użytkownika (AskUserQuestion) o:
 
 Zapisz te dane — będziesz ich używać w każdym kroku.
 
-### Faza 1: Setup klucza SSH
+### Faza 1: Sprawdź zależności
+
+Sprawdź czy `sshpass` jest zainstalowany:
+```bash
+which sshpass
+```
+
+Jeśli nie ma — zainstaluj automatycznie:
+- **macOS:** `brew install sshpass` (jeśli brew nie ma sshpass, użyj: `brew install esolitos/ipa/sshpass`)
+- **Linux (Ubuntu/Debian):** `sudo apt-get install -y sshpass`
+- **Linux (Fedora/RHEL):** `sudo dnf install -y sshpass`
+
+Wykryj system przez `uname -s` i użyj odpowiedniej komendy. Jeśli instalacja się nie uda — powiedz użytkownikowi co zainstalować ręcznie i zatrzymaj się.
+
+### Faza 2: Setup klucza SSH
 
 Sprawdź czy klucz SSH już istnieje lokalnie:
 ```bash
@@ -45,7 +59,7 @@ Jeśli test nie przejdzie — powiedz użytkownikowi co poszło nie tak. Nie id�
 
 **Od tego momentu NIE używaj już hasła — tylko klucz SSH.**
 
-### Faza 2: Przygotowanie serwera
+### Faza 3: Przygotowanie serwera
 
 Skopiuj skrypty na serwer:
 ```bash
@@ -59,7 +73,7 @@ ssh -p PORT LOGIN@IP "bash /tmp/audit.sh"
 
 Przeanalizuj output. Powiedz użytkownikowi co jest OK, co brakuje. Wymień konkretne kroki do zrobienia.
 
-### Faza 3: Hardening — krok po kroku
+### Faza 4: Hardening — krok po kroku
 
 Dla każdego kroku który jest FAIL w audycie, uruchom skrypt zdalnie. Skrypty są interaktywne (pytają o dane), więc **NIE uruchamiaj ich przez `ssh "bash script.sh"`** — to nie zadziała z interaktywnymi promptami.
 
@@ -192,7 +206,7 @@ APT::Periodic::AutocleanInterval \"7\";
 EOF"
 ```
 
-### Faza 4: Weryfikacja
+### Faza 5: Weryfikacja
 
 Uruchom audyt ponownie:
 ```bash
@@ -209,7 +223,7 @@ Powiedz: "Twój serwer jest zabezpieczony! Oto podsumowanie zmian:"
 - Fail2ban: aktywny
 - itd.
 
-### Faza 5: Aktualizacja SSH config (lokalnie)
+### Faza 6: Aktualizacja SSH config (lokalnie)
 
 Zapytaj użytkownika czy chce dodać alias do ~/.ssh/config:
 ```
