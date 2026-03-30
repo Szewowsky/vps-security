@@ -2,23 +2,26 @@
 
 Sprawdź obecny stan zabezpieczeń serwera.
 
-## Instrukcje
+## WAŻNE ZASADY
 
-1. Zapytaj o dane serwera (IP, port SSH, użytkownik)
+1. **NIE próbuj sam łączyć się przez SSH** — mów użytkownikowi co wpisać z prefixem `!`
+2. Jedna komenda na raz, czekaj na output
 
-2. Skopiuj skrypt audytu na serwer:
-   ```bash
-   scp -P PORT scripts/audit.sh user@IP:/tmp/
-   ```
+## Workflow
+
+1. Powiedz użytkownikowi żeby się połączył:
+   "Wpisz: `! ssh -p PORT user@IP`"
+
+2. Pobierz skrypty jeśli ich jeszcze nie ma:
+   "Wpisz: `! git clone https://github.com/Szewowsky/vps-security.git /tmp/vps-security`"
+   (Jeśli już sklonowane, pomiń)
 
 3. Uruchom audyt:
-   ```bash
-   ssh -p PORT user@IP "sudo bash /tmp/audit.sh"
-   ```
+   "Wpisz: `! bash /tmp/vps-security/scripts/audit.sh`"
 
-4. Przeanalizuj wyniki i podsumuj:
-   - Co jest OK (PASS)
+4. Przeanalizuj output i podsumuj:
+   - Co jest OK (PASS) — pochwal
    - Co wymaga uwagi (FAIL/WARN)
-   - Które skrypty uruchomić żeby naprawić
+   - Które skrypty uruchomić żeby naprawić (podaj konkretne numery)
 
-5. Zaproponuj kolejne kroki — podaj konkretne numery skryptów.
+5. Zapytaj czy chce od razu naprawić — jeśli tak, zaproponuj `/hardening`
