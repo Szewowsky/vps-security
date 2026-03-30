@@ -6,7 +6,7 @@
 # Uruchom na serwerze: sudo bash audit.sh
 # =============================================================================
 
-set -euo pipefail
+set -uo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -18,9 +18,9 @@ PASS=0
 FAIL=0
 WARN=0
 
-pass() { echo -e "  ${GREEN}✅ PASS${NC}  $1"; ((PASS++)); }
-fail() { echo -e "  ${RED}❌ FAIL${NC}  $1"; ((FAIL++)); }
-warn() { echo -e "  ${YELLOW}⚠️  WARN${NC}  $1"; ((WARN++)); }
+pass() { echo -e "  ${GREEN}[PASS]${NC}  $1"; PASS=$((PASS + 1)); }
+fail() { echo -e "  ${RED}[FAIL]${NC}  $1"; FAIL=$((FAIL + 1)); }
+warn() { echo -e "  ${YELLOW}[WARN]${NC}  $1"; WARN=$((WARN + 1)); }
 header() { echo -e "\n${BLUE}━━━ $1 ━━━${NC}"; }
 
 echo ""
@@ -188,7 +188,7 @@ echo -e "║  ${GREEN}PASS: $PASS${NC}  ${RED}FAIL: $FAIL${NC}  ${YELLOW}WARN: $
 echo "╚══════════════════════════════════════════╝"
 
 if [[ $FAIL -eq 0 ]]; then
-    echo -e "\n${GREEN}Serwer wygląda dobrze! 🛡️${NC}\n"
+    echo -e "\n${GREEN}Serwer wyglada dobrze!${NC}\n"
 elif [[ $FAIL -le 2 ]]; then
     echo -e "\n${YELLOW}Kilka rzeczy do poprawienia.${NC}\n"
 else

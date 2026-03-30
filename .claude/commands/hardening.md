@@ -66,9 +66,14 @@ Skopiuj skrypty na serwer:
 scp -P PORT scripts/*.sh LOGIN@IP:/tmp/
 ```
 
-Uruchom audyt:
+Uruchom audyt (zapisz do pliku na wypadek uciętego outputu):
 ```bash
-ssh -p PORT LOGIN@IP "bash /tmp/audit.sh"
+ssh -p PORT LOGIN@IP "bash /tmp/audit.sh 2>&1 | tee /tmp/audit-result.txt"
+```
+
+Jeśli output się ucina — pobierz plik:
+```bash
+ssh -p PORT LOGIN@IP "cat /tmp/audit-result.txt"
 ```
 
 Przeanalizuj output. Powiedz użytkownikowi co jest OK, co brakuje. Wymień konkretne kroki do zrobienia.
