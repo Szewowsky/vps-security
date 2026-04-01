@@ -1,5 +1,7 @@
 # VPS Security Hardening 🛡️
 
+![VPS Security Banner](banner.png)
+
 Zabezpiecz swój serwer VPS w 8 krokach. Gotowe skrypty + interaktywny przewodnik z Claude Code.
 
 ## Dla kogo?
