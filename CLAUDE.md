@@ -36,9 +36,11 @@ Każdy krok ma osobny skrypt w `scripts/`. Skrypty są idempotentne (bezpieczne 
 
 ### 2. Hardening SSH
 **Skrypt:** `scripts/02-harden-ssh.sh`
-**Dlaczego:** Domyślny port 22 jest skanowany przez boty non-stop. Klucze SSH są bezpieczniejsze niż hasła.
-**Co robi:** zmiana portu, wyłączenie hasła, timeout, limit prób.
-**Weryfikacja:** `sshd -t` (test konfiguracji), logowanie kluczem działa.
+**Dlaczego:** Domyślny port 22 jest skanowany przez boty non-stop. Klucze SSH są bezpieczniejsze niż hasła. Root login = no.
+**Co robi:** drop-in `/etc/ssh/sshd_config.d/99-hardening.conf` (cloud-init proof) + disable cloud-init SSH regen. Port, PermitRootLogin no, PasswordAuthentication no, MaxAuthTries 3, X11 off, idle timeout.
+**Trwałe:** drop-in 99-* jest alfabetycznie ostatni → wygrywa nad cloud-init 50-*, 60-*. Przeżywa restart.
+**Non-interactive:** `HARDENING_SSH_PORT=2222 sudo bash 02-harden-ssh.sh`
+**Weryfikacja:** `sudo sshd -T | grep -E "port|permitroot|password|maxauth"` pokazuje docelowe wartości.
 
 ### 3. Firewall (UFW)
 **Skrypt:** `scripts/03-setup-firewall.sh`

@@ -42,8 +42,16 @@ if [[ $EUID -eq 0 ]]; then
     fi
 fi
 
+# Effective config przez sshd -T (uwzględnia wszystkie drop-iny w sshd_config.d/)
+# Fallback: jeśli sshd -T fail'uje (broken config) → użyj grep głównego pliku.
+SSHD_EFFECTIVE=$(sshd -T 2>/dev/null || true)
+
 # Sprawdź PermitRootLogin
-ROOT_LOGIN=$(grep -E "^PermitRootLogin" /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
+if [[ -n "$SSHD_EFFECTIVE" ]]; then
+    ROOT_LOGIN=$(echo "$SSHD_EFFECTIVE" | awk '/^permitrootlogin / {print $2; exit}')
+else
+    ROOT_LOGIN=$(grep -E "^PermitRootLogin" /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
+fi
 if [[ "$ROOT_LOGIN" == "no" ]]; then
     pass "Logowanie root przez SSH wyłączone"
 else
@@ -53,7 +61,11 @@ fi
 # --- 2. SSH ---
 header "2. SSH Hardening"
 
-SSH_PORT=$(grep -E "^Port " /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
+if [[ -n "$SSHD_EFFECTIVE" ]]; then
+    SSH_PORT=$(echo "$SSHD_EFFECTIVE" | awk '/^port / {print $2; exit}')
+else
+    SSH_PORT=$(grep -E "^Port " /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
+fi
 SSH_PORT=${SSH_PORT:-22}
 
 if [[ "$SSH_PORT" != "22" ]]; then
@@ -62,15 +74,25 @@ else
     warn "Port SSH domyślny: 22 (zmiana opcjonalna — niektóre hostingi blokują inne porty)"
 fi
 
-PASS_AUTH=$(grep -E "^PasswordAuthentication" /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
-# Sprawdź też cloud-init
-PASS_AUTH_CLOUD=$(grep -E "^PasswordAuthentication" /etc/ssh/sshd_config.d/50-cloud-init.conf 2>/dev/null | awk '{print $2}')
-EFFECTIVE_PASS=${PASS_AUTH_CLOUD:-$PASS_AUTH}
+if [[ -n "$SSHD_EFFECTIVE" ]]; then
+    EFFECTIVE_PASS=$(echo "$SSHD_EFFECTIVE" | awk '/^passwordauthentication / {print $2; exit}')
+else
+    PASS_AUTH=$(grep -E "^PasswordAuthentication" /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
+    PASS_AUTH_CLOUD=$(grep -hE "^PasswordAuthentication" /etc/ssh/sshd_config.d/*.conf 2>/dev/null | tail -1 | awk '{print $2}')
+    EFFECTIVE_PASS=${PASS_AUTH_CLOUD:-$PASS_AUTH}
+fi
 
 if [[ "$EFFECTIVE_PASS" == "no" ]]; then
     pass "Logowanie hasłem wyłączone"
 else
     fail "Logowanie hasłem włączone"
+fi
+
+# Sprawdź czy hardening drop-in istnieje (trwałe vs ephemeral po cloud-init regen)
+if [[ -f /etc/ssh/sshd_config.d/99-hardening.conf ]]; then
+    pass "Hardening drop-in obecny (cloud-init proof): /etc/ssh/sshd_config.d/99-hardening.conf"
+else
+    warn "Brak drop-in 99-hardening.conf - hardening może nie przeżyć cloud-init regen po restarcie"
 fi
 
 # Sprawdź klucze SSH — u aktualnego usera LUB roota
@@ -87,7 +109,11 @@ if [[ "$FOUND_KEYS" == "false" ]]; then
     fail "Brak kluczy SSH"
 fi
 
-MAX_AUTH=$(grep -E "^MaxAuthTries" /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
+if [[ -n "$SSHD_EFFECTIVE" ]]; then
+    MAX_AUTH=$(echo "$SSHD_EFFECTIVE" | awk '/^maxauthtries / {print $2; exit}')
+else
+    MAX_AUTH=$(grep -E "^MaxAuthTries" /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
+fi
 if [[ -n "$MAX_AUTH" && "$MAX_AUTH" -le 5 ]]; then
     pass "MaxAuthTries: $MAX_AUTH"
 else
