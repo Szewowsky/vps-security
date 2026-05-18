@@ -89,10 +89,10 @@ else
 fi
 
 # Sprawdź czy hardening drop-in istnieje (trwałe vs ephemeral po cloud-init regen)
-if [[ -f /etc/ssh/sshd_config.d/99-hardening.conf ]]; then
-    pass "Hardening drop-in obecny (cloud-init proof): /etc/ssh/sshd_config.d/99-hardening.conf"
+if [[ -f /etc/ssh/sshd_config.d/00-hardening.conf ]]; then
+    pass "Hardening drop-in obecny (cloud-init proof): /etc/ssh/sshd_config.d/00-hardening.conf"
 else
-    warn "Brak drop-in 99-hardening.conf - hardening może nie przeżyć cloud-init regen po restarcie"
+    warn "Brak drop-in 00-hardening.conf - hardening może nie przeżyć cloud-init regen po restarcie"
 fi
 
 # Sprawdź klucze SSH — u aktualnego usera LUB roota
