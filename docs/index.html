@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Zabezpiecz swój VPS z agentem · poradnik po odcinku</title>
 <meta name="description" content="Jedna wklejka do Claude Code i agent przeprowadza Cię przez 8 kroków zabezpieczenia serwera VPS. Audyt przed, audyt po, zero programowania.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -262,6 +263,18 @@
     <ul class="plain">
       <li><strong>Serwer VPS z Ubuntu</strong> (22.04 lub 24.04) - może być świeżo postawiony, tak jest nawet lepiej.</li>
       <li><strong>Dane serwera:</strong> adres IP, login (zwykle <code style="font-family:var(--mono);color:var(--orange)">root</code>) oraz hasło albo klucz SSH dodany w panelu hostingu.</li>
+    </ul>
+    <div class="note">
+      <p><strong>Gdzie to znaleźć na Hostingerze:</strong> hPanel → <strong>VPS</strong> →
+      <strong>Manage</strong> przy Twoim serwerze. Na stronie Overview masz wszystko:
+      adres IPv4 i nazwę użytkownika w karcie z danymi VPS-a, a obok nazwy serwera, pod
+      <strong>Root access</strong>, gotową do skopiowania komendę SSH. Hasło to te, które ustawiłeś
+      przy tworzeniu serwera - panel go nie pokaże; jeśli go nie pamiętasz, kliknij
+      <strong>Change</strong> pod „Root password" i ustaw nowe. Jest tam też przycisk
+      <strong>Terminal</strong> (prawy górny róg) - konsola w przeglądarce, logująca Cię automatycznie,
+      gdyby SSH z komputera jeszcze nie działało.</p>
+    </div>
+    <ul class="plain">
       <li><strong>Claude Code na Twoim komputerze.</strong> Agent działa lokalnie i łączy się z serwerem za Ciebie.</li>
     </ul>
     <div class="warn">
@@ -442,7 +455,9 @@ claude</pre>
     <p>Wychodzisz bez zabijania sesji: <code style="font-family:var(--mono)">Ctrl+B</code>, potem
     <code style="font-family:var(--mono)">D</code>. Wracasz później:
     <code style="font-family:var(--mono)">ssh vps</code> i
-    <code style="font-family:var(--mono)">tmux attach -t praca</code>.</p>
+    <code style="font-family:var(--mono)">tmux attach -t praca</code>.
+    Na Ubuntu tmux zwykle jest od razu - jeśli serwer odpowie „command not found", doinstalujesz go
+    jedną komendą: <code style="font-family:var(--mono)">sudo apt install -y tmux</code>.</p>
     </div>
     </details>
 
@@ -563,7 +578,9 @@ roboczym. Przeprowadź użytkownika przez całość PO KOLEI. Zasady prowadzenia
 Sklonuj repozytorium https://github.com/Szewowsky/vps-security.git do bieżącego katalogu,
 przeczytaj plik .claude/commands/hardening.md i przeprowadź użytkownika przez opisany tam wizard
 dokładnie według jego zasad bezpieczeństwa i kolejności faz: zbierz dane (Faza 0: IP, port, login,
-hasło lub klucz, nazwa nowego użytkownika), potem audyt PRZED, kroki hardeningu (zmianę portu SSH
+hasło lub klucz, nazwa nowego użytkownika; na Hostingerze użytkownik znajdzie je w hPanel → VPS →
+Manage → Overview: IPv4 i username w karcie danych VPS, gotowa komenda pod "Root access", hasło
+ustawione przy tworzeniu serwera - reset przez "Root password" → Change), potem audyt PRZED, kroki hardeningu (zmianę portu SSH
 proponuj TYLKO w opcjonalnym Kroku 2b, default: zostaw), audyt PO - i na końcu pokaż zestawienie:
 co było na czerwono, a co jest teraz na zielono.
 
