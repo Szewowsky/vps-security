@@ -332,6 +332,13 @@ Przez cały czas pilnuj, żebym nie stracił dostępu do serwera.</pre>
     <h2>Co się będzie działo (i gdzie masz coś do powiedzenia)</h2>
     <div class="flow">
       <div class="flow-item">
+        <div class="flow-num">🔑</div>
+        <div><h4>Dane i klucz SSH</h4>
+        <p>Agent pyta o IP, port, login, hasło i nazwę nowego użytkownika, po czym sprawdza, czy Twój
+        klucz SSH działa na serwerze. Jeśli dodałeś go w panelu hostingu - idzie dalej bez hasła.
+        Jeśli nie - sam go wgrywa (stąd pytanie o hasło), a gdy klucza w ogóle nie masz, najpierw go wygeneruje.</p></div>
+      </div>
+      <div class="flow-item">
         <div class="flow-num">00</div>
         <div><h4>Audyt PRZED</h4>
         <p>Agent odpala skrypt audytu na serwerze. Na świeżej maszynie zobaczysz sporo czerwonego - to jest punkt odniesienia, do którego wrócimy na końcu.</p></div>
