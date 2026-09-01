@@ -158,6 +158,36 @@
     padding:2px 7px;border-radius:6px;
   }
 
+  /* AKORDEONY (3 drogi) */
+  .droga{
+    border:1px solid var(--line);border-radius:14px;background:var(--bg-2);
+    margin:14px 0;overflow:hidden;
+  }
+  .droga.pick{border-color:rgba(243,159,6,.5)}
+  .droga summary{
+    cursor:pointer;list-style:none;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:18px 20px;font-family:var(--disp);font-weight:650;font-size:17.5px;
+    user-select:none;transition:background .15s;
+  }
+  .droga summary::-webkit-details-marker{display:none}
+  .droga summary:hover{background:rgba(255,255,255,.03)}
+  .droga summary::after{
+    content:"+";margin-left:auto;font-family:var(--mono);font-size:20px;color:var(--orange);
+    transition:transform .2s;flex-shrink:0;
+  }
+  .droga[open] summary::after{transform:rotate(45deg)}
+  .droga .d-num{
+    font-family:var(--mono);font-size:12.5px;color:var(--orange);
+    border:1px solid var(--line);border-radius:8px;padding:4px 10px;background:rgba(255,255,255,.02);
+    flex-shrink:0;
+  }
+  .droga .d-body{padding:4px 20px 20px;border-top:1px dashed var(--line)}
+
+  /* HERO ACTIONS (kopiuj .md) */
+  .hero-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:26px}
+  .md-btn{font-size:13px;padding:11px 18px;border-radius:10px}
+  .md-hint{font-size:13.5px;color:var(--ink-dim);max-width:420px}
+
   /* CTA */
   .cta-line{
     margin-top:22px;padding:12px 16px;border:1px dashed rgba(243,159,6,.4);border-radius:12px;
@@ -209,6 +239,10 @@
       <span class="chip">⏱ ok. 15 minut</span>
       <span class="chip">🧑‍💻 zero programowania</span>
       <span class="chip"><b>8 kroków</b> robi agent</span>
+    </div>
+    <div class="hero-actions">
+      <button class="copy-btn md-btn" data-copy="md-guide">📋 Kopiuj cały poradnik jako prompt dla agenta (.md)</button>
+      <span class="md-hint">Nie chcesz czytać? Wklej całość w Claude Code - agent przeprowadzi Cię przez wszystko krok po kroku.</span>
     </div>
     <div class="cta-line">
       Nie masz jeszcze serwera? Ja korzystam z VPS-ów od <a href="https://hostinger.com/robertclaude">Hostingera</a>
@@ -369,25 +403,10 @@ ssh -p TWOJ_PORT root@TWOJE_IP</pre>
     <p>Serwer zabezpieczony, agent na nim mieszka. Teraz właściwa część odcinka: jak się do niego
     wpinać na co dzień. Wszystkie trzy drogi korzystają z tego samego aliasu w
     <code style="font-family:var(--mono);color:var(--orange)">~/.ssh/config</code> - robisz go raz.</p>
-    <div class="cards">
-      <div class="card">
-        <h4>01 · Terminal</h4>
-        <p>Cała długa komenda z portem, userem i adresem zamienia się w jedno słowo: <code>ssh vps</code>.
-        Sesję owijasz w <code>tmux</code>, żeby nie umierała razem z oknem.</p>
-      </div>
-      <div class="card pick">
-        <span class="badge">z tej korzystam</span>
-        <h4>02 · Aplikacja desktopowa</h4>
-        <p>Ten sam alias w polu SSH Host. Przy pierwszym połączeniu aplikacja <strong>sama instaluje
-        Claude Code na serwerze</strong>, a panel plików pokazuje drzewo katalogów z VPS-a, nie z Twojego dysku.</p>
-      </div>
-      <div class="card">
-        <h4>03 · Edytor (Remote-SSH)</h4>
-        <p>VS Code albo Cursor z wtyczką Remote-SSH - ten sam serwer, z poziomu edytora, do którego
-        jesteś przyzwyczajony. Najlepsze przy większym grzebaniu w plikach.</p>
-      </div>
-    </div>
-    <h3>Droga 1 · Terminal: alias raz, działa wszędzie</h3>
+    <p style="font-size:15px">Kliknij metodę, żeby rozwinąć instrukcję krok po kroku.</p>
+    <details class="droga" id="droga-terminal">
+    <summary><span class="d-num">01</span> Terminal - alias raz, działa wszędzie</summary>
+    <div class="d-body">
     <p>Cała robota to jeden wpis w pliku konfiguracyjnym SSH. Otwierasz plik (jeśli nie istnieje,
     komenda utworzy pusty - to normalne):</p>
     <div class="codeblock">
@@ -424,8 +443,13 @@ claude</pre>
     <code style="font-family:var(--mono)">D</code>. Wracasz później:
     <code style="font-family:var(--mono)">ssh vps</code> i
     <code style="font-family:var(--mono)">tmux attach -t praca</code>.</p>
+    </div>
+    </details>
 
-    <h3>Droga 2 · Aplikacja desktopowa: ten sam alias, inne drzwi</h3>
+    <details class="droga pick" id="droga-apka">
+    <summary><span class="d-num">02</span> Aplikacja desktopowa - ten sam alias, inne drzwi
+    <span class="badge">z tej korzystam</span></summary>
+    <div class="d-body">
     <ul class="plain">
       <li><strong>1.</strong> Przy polu do wpisywania promptu rozwiń menu środowiska (to, w którym są
       <code style="font-family:var(--mono)">Local</code> i <code style="font-family:var(--mono)">Cloud</code>).</li>
@@ -446,8 +470,12 @@ claude</pre>
       zadanie na dwie, trzy minuty → zamknij aplikację, dla pewności także klapę laptopa → wróć,
       otwórz to samo połączenie. Zadanie czeka gotowe, pliki na miejscu. Serwer nie idzie spać razem z Tobą.</p>
     </div>
+    </div>
+    </details>
 
-    <h3>Droga 3 · Edytor: VS Code albo Cursor z Remote-SSH</h3>
+    <details class="droga" id="droga-edytor">
+    <summary><span class="d-num">03</span> Edytor - VS Code albo Cursor z Remote-SSH</summary>
+    <div class="d-body">
     <ul class="plain">
       <li><strong>1.</strong> Zainstaluj wtyczkę <strong>Remote-SSH</strong> z marketplace'u rozszerzeń.</li>
       <li><strong>2.</strong> <code style="font-family:var(--mono)">Cmd/Ctrl+Shift+P</code> →
@@ -456,8 +484,10 @@ claude</pre>
       <li><strong>3.</strong> Po połączeniu otwierasz folder na serwerze i pracujesz jak lokalnie -
       najlepsze przy większym grzebaniu w strukturze plików.</li>
     </ul>
+    </div>
+    </details>
 
-    <p>Kompletna instrukcja połączenia (gotowy prompt dla agenta, tabela "czego się nie
+    <p style="margin-top:22px">Kompletna instrukcja połączenia (gotowy prompt dla agenta, tabela "czego się nie
     spodziewać", najczęstsze potknięcia) czeka w osobnym gotowcu:
     <a href="https://github.com/Szewowsky/claude-code-vps-hostinger/blob/main/POLACZENIE-Z-KOMPUTERA.md">POLACZENIE-Z-KOMPUTERA.md</a>
     - też w dwóch trybach: prompt dla agenta albo pięć minut ręcznie.</p>
@@ -516,6 +546,75 @@ claude</pre>
   </div>
 </footer>
 
+<script type="text/plain" id="md-guide">
+# Zabezpiecz VPS i połącz się z nim z komputera - instrukcja dla agenta AI
+
+Jesteś agentem AI (np. Claude Code) uruchomionym na komputerze użytkownika, w pustym folderze
+roboczym. Przeprowadź użytkownika przez całość PO KOLEI. Zasady prowadzenia:
+- Wykonuj jeden krok naraz i czekaj na wynik każdej komendy, zanim przejdziesz dalej.
+- Jeśli test kroku nie przeszedł - STOP: pokaż błąd i zapytaj użytkownika, nie brnij na ślepo.
+- Przez cały czas pilnuj, żeby użytkownik nie stracił dostępu do serwera.
+- Poproś go na starcie, żeby trzymał otwarte zapasowe okno terminala zalogowane na serwer.
+- Część 1 wykonujesz Ty (komendami). W częściach 3-5 użytkownik klika sam - Ty prowadzisz słownie
+  i weryfikujesz efekty.
+
+## Część 1: Zabezpieczenie serwera (hardening)
+
+Sklonuj repozytorium https://github.com/Szewowsky/vps-security.git do bieżącego katalogu,
+przeczytaj plik .claude/commands/hardening.md i przeprowadź użytkownika przez opisany tam wizard
+dokładnie według jego zasad bezpieczeństwa i kolejności faz: zbierz dane (Faza 0: IP, port, login,
+hasło lub klucz, nazwa nowego użytkownika), potem audyt PRZED, kroki hardeningu (zmianę portu SSH
+proponuj TYLKO w opcjonalnym Kroku 2b, default: zostaw), audyt PO - i na końcu pokaż zestawienie:
+co było na czerwono, a co jest teraz na zielono.
+
+## Część 2: Alias SSH na komputerze użytkownika
+
+1. Sprawdź, czy ~/.ssh/config istnieje; jeśli nie - utwórz i nadaj uprawnienia 600.
+2. Dopisz wpis (dane z Części 1; jeśli "Host vps" już istnieje - pokaż obecny i zapytaj, czy podmienić):
+
+   Host vps
+       HostName [ADRES-SERWERA]
+       User [NOWY-UZYTKOWNIK]
+       Port [PORT]
+       IdentityFile ~/.ssh/id_ed25519
+
+3. Sprawdź uprawnienia klucza prywatnego (600, w razie czego napraw).
+4. Przetestuj: ssh -o BatchMode=yes vps "echo OK"
+5. Pokaż użytkownikowi dodany wpis i wynik testu. Nie zmieniaj niczego innego w ~/.ssh/config.
+
+## Część 3: Sesja, która nie umiera (tmux)
+
+Poprowadź użytkownika: ssh vps → tmux new -s praca → claude. Wyjście bez zabijania sesji:
+Ctrl+B, potem D. Powrót: ssh vps i tmux attach -t praca.
+
+## Część 4: Aplikacja desktopowa Claude Code
+
+Poprowadź użytkownika słownie: w aplikacji, przy polu prompta, rozwija menu środowiska
+(Local / Cloud) → "+ Add SSH connection" → w polu SSH Host wpisuje TYLKO alias "vps"
+(port i klucz zostawia puste - aplikacja bierze je z ~/.ssh/config) → wybiera połączenie.
+Przy pierwszym połączeniu aplikacja sama instaluje Claude Code na serwerze. Panel plików po lewej
+pokazuje drzewo katalogów SERWERA, nie lokalnego dysku. Uwaga: wbudowany terminal aplikacji działa
+tylko w sesjach lokalnych, nie w SSH.
+
+## Część 5: Edytor (opcjonalnie)
+
+VS Code / Cursor: wtyczka Remote-SSH → "Remote-SSH: Connect to Host" → alias vps z listy →
+otwarcie folderu na serwerze.
+
+## Najczęstsze potknięcia (diagnozuj po objawie)
+
+- "Host denied" / "verification failed" w aplikacji → komputer pamięta stary odcisk serwera:
+  ssh-keygen -R [adres-serwera], połącz ponownie.
+- "WARNING: UNPROTECTED PRIVATE KEY FILE" → chmod 600 na pliku klucza prywatnego.
+- Komendy dotykające /root nie działają → zwykły użytkownik, opakuj w sudo.
+- Nie da się wystawić usługi na porcie 80 → porty <1024 zablokowane dla zwykłego użytkownika,
+  użyj 3000/8080.
+- Hasło lub klucz ze znakiem "!" psuje się w terminalu → podawaj przez printf i stdin, nie jako argument.
+- Uwaga: Codex czyta ~/.ssh/config, ale NIE instaluje się sam na serwerze - wymaga codex już w PATH.
+
+Źródło i pełne materiały: https://github.com/Szewowsky/vps-security oraz
+https://github.com/Szewowsky/claude-code-vps-hostinger/blob/main/POLACZENIE-Z-KOMPUTERA.md
+</script>
 <script>
   function fallbackCopy(text){
     var ta = document.createElement('textarea');
@@ -531,7 +630,8 @@ claude</pre>
   }
   document.querySelectorAll('.copy-btn').forEach(function(btn){
     btn.addEventListener('click', function(){
-      var text = document.getElementById(btn.dataset.copy).innerText;
+      var el = document.getElementById(btn.dataset.copy);
+      var text = el.tagName === 'SCRIPT' ? el.textContent.trim() : el.innerText;
       var mark = function(ok){
         var old = btn.textContent;
         btn.textContent = ok ? 'Skopiowane ✓' : 'Zaznacz i skopiuj ręcznie';
