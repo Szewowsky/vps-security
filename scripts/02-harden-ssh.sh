@@ -10,6 +10,8 @@
 # 4. Ustawia timeout nieaktywnej sesji
 # 5. Ogranicza liczbę prób logowania
 # 6. Wyłącza cloud-init regenerację SSH config (trwałe po restarcie)
+# 7. Przy zmianie portu i aktywnym UFW: dopuszcza nowy port PRZED reloadem sshd
+#    (inaczej użytkownik mógłby się odciąć - firewall blokowałby nowy port)
 #
 # DLACZEGO drop-in 00-* (NIE 99-*):
 # OpenSSH stosuje "first wins" rule - PIERWSZE wystąpienie opcji wygrywa.
@@ -39,7 +41,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 echo "============================================"
-echo "  Krok 2: Hardening SSH (drop-in 99-*)"
+echo "  Krok 2: Hardening SSH (drop-in 00-*)"
 echo "============================================"
 echo ""
 
@@ -135,6 +137,18 @@ echo ""
 if sshd -t 2>&1; then
     info "Konfiguracja SSH poprawna (sshd -t)."
 
+    # --- UFW: dopuść nowy port PRZED reloadem sshd ---
+    # Bez tego użytkownik z aktywnym UFW odciąłby się przy zmianie portu:
+    # sshd zaczyna słuchać na nowym porcie, którego firewall jeszcze nie przepuszcza.
+    # Celowo bez maskowania błędów - jeśli ufw allow padnie, set -e zatrzyma skrypt
+    # ZANIM reload zmieni port.
+    if [[ "$NEW_PORT" != "$CURRENT_PORT" ]] && command -v ufw >/dev/null 2>&1; then
+        if ufw status 2>/dev/null | grep -q "^Status: active"; then
+            ufw allow "$NEW_PORT/tcp"
+            info "UFW: dopuszczono port $NEW_PORT/tcp (przed reloadem sshd)."
+        fi
+    fi
+
     # Reload zamiast restart - nie ubija aktywnych sesji
     if systemctl reload ssh 2>/dev/null; then
         info "SSH reload (aktywna sesja nieprzerwana)."
@@ -164,11 +178,17 @@ echo "$SSHD_AFTER" | grep -iE "^(port|permitrootlogin|passwordauthentication|pub
 echo ""
 
 # --- Firewall przypomnienie ---
+# Nowy port jest dopuszczany w UFW automatycznie przed reloadem (patrz wyżej).
+# Tutaj zostaje tylko sprzątanie starego portu + przypadek nieaktywnego UFW.
 if [[ "$NEW_PORT" != "$CURRENT_PORT" ]]; then
     echo ""
-    warn "WAŻNE: Dodaj nowy port do firewalla PRZED zamknięciem starego!"
-    echo "  sudo ufw allow $NEW_PORT/tcp"
-    echo "  sudo ufw delete allow $CURRENT_PORT/tcp  # po teście nowego portu"
+    if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "^Status: active"; then
+        warn "Stary port $CURRENT_PORT zamknij dopiero PO teście logowania na nowym:"
+        echo "  sudo ufw delete allow $CURRENT_PORT/tcp  # po teście nowego portu"
+    else
+        warn "UFW nieaktywny - po jego włączeniu (krok 3) upewnij się, że port $NEW_PORT jest dopuszczony:"
+        echo "  sudo ufw allow $NEW_PORT/tcp"
+    fi
     echo ""
     warn "NIE zamykaj tego terminala dopóki nie zweryfikujesz logowania na nowym porcie!"
 fi
