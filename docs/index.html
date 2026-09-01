@@ -469,11 +469,13 @@ claude</pre>
       <li><strong>1.</strong> Przy polu do wpisywania promptu rozwiń menu środowiska (to, w którym są
       <code style="font-family:var(--mono)">Local</code> i <code style="font-family:var(--mono)">Cloud</code>).</li>
       <li><strong>2.</strong> Wybierz <strong>+ Add SSH connection</strong>.</li>
-      <li><strong>3.</strong> Wypełnij JEDNO pole: <strong>SSH Host</strong> =
+      <li><strong>3.</strong> Wypełnij JEDNO pole: <strong>SSH host</strong> =
       <code style="font-family:var(--mono);color:var(--orange)">vps</code>. Name to dowolna etykieta,
-      a port i klucz <strong>zostaw puste</strong> - aplikacja bierze je z tego samego
-      <code style="font-family:var(--mono)">~/.ssh/config</code>, który już masz.</li>
-      <li><strong>4.</strong> Wybierz połączenie z listy. Przy pierwszym połączeniu aplikacja
+      a <strong>SSH port</strong> i <strong>SSH key</strong> <strong>zostaw puste</strong> - aplikacja
+      sama pisze pod polami, że weźmie je z <code style="font-family:var(--mono)">~/.ssh/config</code>.</li>
+      <li><strong>4.</strong> Kliknij <strong>Test connection</strong> - masz potwierdzenie, że alias
+      działa, zanim cokolwiek dodasz - i dopiero <strong>Add SSH connection</strong>.</li>
+      <li><strong>5.</strong> Wybierz połączenie z listy. Przy pierwszym połączeniu aplikacja
       <strong>sama instaluje Claude Code na serwerze</strong> - autoryzacja idzie przez apkę na Twoim
       komputerze, serwer nie potrzebuje przeglądarki.</li>
     </ul>
@@ -489,8 +491,24 @@ claude</pre>
     </details>
 
     <details class="droga" id="droga-edytor">
-    <summary><span class="d-num">03</span> Edytor - VS Code albo Cursor z Remote-SSH</summary>
+    <summary><span class="d-num">03</span> Edytor / IDE - Warp albo VS Code z Remote-SSH</summary>
     <div class="d-body">
+    <h3 style="margin-top:18px">Wariant A: Warp</h3>
+    <ul class="plain">
+      <li><strong>1.</strong> Zainstaluj <a href="https://www.warp.dev">Warpa</a> i wpisz w nim to samo
+      <code style="font-family:var(--mono);color:var(--orange)">ssh vps</code> - Warp jest terminalem,
+      więc czyta ten sam <code style="font-family:var(--mono)">~/.ssh/config</code>.</li>
+      <li><strong>2.</strong> Przy pierwszym połączeniu Warp zapyta o instalację swojego
+      <strong>rozszerzenia SSH na serwerze</strong>. Klikasz „Install Warp's SSH extension" - instaluje
+      się tylko w Twoim katalogu domowym (<code style="font-family:var(--mono)">~/.warp/</code>),
+      bez roota i bez otwierania portów.</li>
+      <li><strong>3.</strong> Od tego momentu masz w Warpie <strong>drzewo plików z serwera</strong>,
+      edycję zdalnych plików w edytorze, podgląd diffów i agenta pracującego na zdalnym repo -
+      to samo, co lokalnie, tylko na VPS-ie.</li>
+      <li><strong>Wymagania:</strong> serwer z Ubuntu 20.04+ (glibc 2.31+), bash/zsh.
+      Odinstalowanie: usuń <code style="font-family:var(--mono)">~/.warp*/remote-server</code> na serwerze.</li>
+    </ul>
+    <h3>Wariant B: VS Code albo Cursor (Remote-SSH)</h3>
     <ul class="plain">
       <li><strong>1.</strong> Zainstaluj wtyczkę <strong>Remote-SSH</strong> z marketplace'u rozszerzeń.</li>
       <li><strong>2.</strong> <code style="font-family:var(--mono)">Cmd/Ctrl+Shift+P</code> →
@@ -613,10 +631,13 @@ Przy pierwszym połączeniu aplikacja sama instaluje Claude Code na serwerze. Pa
 pokazuje drzewo katalogów SERWERA, nie lokalnego dysku. Uwaga: wbudowany terminal aplikacji działa
 tylko w sesjach lokalnych, nie w SSH.
 
-## Część 5: Edytor (opcjonalnie)
+## Część 5: Edytor / IDE (opcjonalnie)
 
-VS Code / Cursor: wtyczka Remote-SSH → "Remote-SSH: Connect to Host" → alias vps z listy →
-otwarcie folderu na serwerze.
+Warp: użytkownik wpisuje w Warpie "ssh vps"; przy pierwszym połączeniu Warp proponuje instalację
+swojego rozszerzenia SSH na serwerze (tylko ~/.warp/, bez roota) - po akceptacji dostaje drzewo
+plików serwera, edycję zdalnych plików i agenta na zdalnym repo. Wymaga Ubuntu 20.04+ na serwerze.
+Alternatywnie VS Code / Cursor: wtyczka Remote-SSH → "Remote-SSH: Connect to Host" → alias vps
+z listy → otwarcie folderu na serwerze.
 
 ## Najczęstsze potknięcia (diagnozuj po objawie)
 
