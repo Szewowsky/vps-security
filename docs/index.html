@@ -387,8 +387,78 @@ ssh -p TWOJ_PORT root@TWOJE_IP</pre>
         jesteś przyzwyczajony. Najlepsze przy większym grzebaniu w plikach.</p>
       </div>
     </div>
-    <p>Kompletna instrukcja połączenia (alias, konfiguracja aplikacji, tmux, tabela "czego się nie
-    spodziewać") czeka w osobnym gotowcu:
+    <h3>Droga 1 · Terminal: alias raz, działa wszędzie</h3>
+    <p>Cała robota to jeden wpis w pliku konfiguracyjnym SSH. Otwierasz plik (jeśli nie istnieje,
+    komenda utworzy pusty - to normalne):</p>
+    <div class="codeblock">
+      <div class="codebar"><span>Twój komputer · terminal</span><button class="copy-btn" data-copy="cb4">Kopiuj</button></div>
+      <pre id="cb4">nano ~/.ssh/config</pre>
+    </div>
+    <p>I dopisujesz te linijki, podmieniając adres, użytkownika i port na swoje (adres i użytkownika
+    masz w panelu hostingu; port to 22, chyba że zmieniałeś go przy hardeningu):</p>
+    <div class="codeblock">
+      <div class="codebar"><span>~/.ssh/config · przykład, podmień dane</span><button class="copy-btn" data-copy="cb5">Kopiuj</button></div>
+      <pre id="cb5">Host vps
+    HostName 11.22.33.44
+    User twoj-uzytkownik
+    Port 22
+    IdentityFile ~/.ssh/id_ed25519</pre>
+    </div>
+    <p>Zapisujesz (<code style="font-family:var(--mono)">Ctrl+O</code>, Enter,
+    <code style="font-family:var(--mono)">Ctrl+X</code>) i sprawdzasz:</p>
+    <div class="codeblock">
+      <div class="codebar"><span>Twój komputer · terminal</span><button class="copy-btn" data-copy="cb6">Kopiuj</button></div>
+      <pre id="cb6">chmod 600 ~/.ssh/config
+ssh vps</pre>
+    </div>
+    <p>Jesteś na serwerze - od teraz to jedno słowo zastępuje całą komendę z portem, userem i adresem.
+    Agenta uruchamiasz w <code style="font-family:var(--mono)">tmux</code>, żeby praca nie ginęła
+    razem z zamkniętym oknem:</p>
+    <div class="codeblock">
+      <div class="codebar"><span>Sesja, która nie umiera</span><button class="copy-btn" data-copy="cb7">Kopiuj</button></div>
+      <pre id="cb7">ssh vps
+tmux new -s praca
+claude</pre>
+    </div>
+    <p>Wychodzisz bez zabijania sesji: <code style="font-family:var(--mono)">Ctrl+B</code>, potem
+    <code style="font-family:var(--mono)">D</code>. Wracasz później:
+    <code style="font-family:var(--mono)">ssh vps</code> i
+    <code style="font-family:var(--mono)">tmux attach -t praca</code>.</p>
+
+    <h3>Droga 2 · Aplikacja desktopowa: ten sam alias, inne drzwi</h3>
+    <ul class="plain">
+      <li><strong>1.</strong> Przy polu do wpisywania promptu rozwiń menu środowiska (to, w którym są
+      <code style="font-family:var(--mono)">Local</code> i <code style="font-family:var(--mono)">Cloud</code>).</li>
+      <li><strong>2.</strong> Wybierz <strong>+ Add SSH connection</strong>.</li>
+      <li><strong>3.</strong> Wypełnij JEDNO pole: <strong>SSH Host</strong> =
+      <code style="font-family:var(--mono);color:var(--orange)">vps</code>. Name to dowolna etykieta,
+      a port i klucz <strong>zostaw puste</strong> - aplikacja bierze je z tego samego
+      <code style="font-family:var(--mono)">~/.ssh/config</code>, który już masz.</li>
+      <li><strong>4.</strong> Wybierz połączenie z listy. Przy pierwszym połączeniu aplikacja
+      <strong>sama instaluje Claude Code na serwerze</strong> - autoryzacja idzie przez apkę na Twoim
+      komputerze, serwer nie potrzebuje przeglądarki.</li>
+    </ul>
+    <p>Po lewej stronie zobaczysz drzewo plików. <strong>To nie jest Twój dysk - to serwer.</strong>
+    Klikasz plik, edytujesz, zapisujesz, i zostaje tam.</p>
+
+    <div class="note">
+      <p><strong>Test zamkniętej klapy</strong> - to, po co w ogóle się tu wpinasz: zleć agentowi
+      zadanie na dwie, trzy minuty → zamknij aplikację, dla pewności także klapę laptopa → wróć,
+      otwórz to samo połączenie. Zadanie czeka gotowe, pliki na miejscu. Serwer nie idzie spać razem z Tobą.</p>
+    </div>
+
+    <h3>Droga 3 · Edytor: VS Code albo Cursor z Remote-SSH</h3>
+    <ul class="plain">
+      <li><strong>1.</strong> Zainstaluj wtyczkę <strong>Remote-SSH</strong> z marketplace'u rozszerzeń.</li>
+      <li><strong>2.</strong> <code style="font-family:var(--mono)">Cmd/Ctrl+Shift+P</code> →
+      „Remote-SSH: Connect to Host" - na liście zobaczysz <code style="font-family:var(--mono);color:var(--orange)">vps</code>,
+      bo wtyczka czyta ten sam <code style="font-family:var(--mono)">~/.ssh/config</code>.</li>
+      <li><strong>3.</strong> Po połączeniu otwierasz folder na serwerze i pracujesz jak lokalnie -
+      najlepsze przy większym grzebaniu w strukturze plików.</li>
+    </ul>
+
+    <p>Kompletna instrukcja połączenia (gotowy prompt dla agenta, tabela "czego się nie
+    spodziewać", najczęstsze potknięcia) czeka w osobnym gotowcu:
     <a href="https://github.com/Szewowsky/claude-code-vps-hostinger/blob/main/POLACZENIE-Z-KOMPUTERA.md">POLACZENIE-Z-KOMPUTERA.md</a>
     - też w dwóch trybach: prompt dla agenta albo pięć minut ręcznie.</p>
     <div class="note">
