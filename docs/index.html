@@ -158,6 +158,30 @@
     padding:2px 7px;border-radius:6px;
   }
 
+  /* CTA */
+  .cta-line{
+    margin-top:22px;padding:12px 16px;border:1px dashed rgba(243,159,6,.4);border-radius:12px;
+    font-size:14.5px;color:var(--ink-dim);background:rgba(243,159,6,.05);max-width:620px;
+  }
+  .code-pill{
+    font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--orange);
+    background:rgba(243,159,6,.1);border:1px solid rgba(243,159,6,.35);
+    border-radius:6px;padding:2px 8px;letter-spacing:.06em;
+  }
+  .cta-box{
+    display:flex;align-items:center;justify-content:space-between;gap:26px;flex-wrap:wrap;
+    border:1px solid rgba(243,159,6,.4);border-radius:16px;padding:26px 28px;
+    background:linear-gradient(135deg, rgba(243,159,6,.09), rgba(243,159,6,.02) 60%);
+  }
+  .cta-box p{font-size:15px;max-width:560px}
+  .cta-btn{
+    flex-shrink:0;font-family:var(--disp);font-weight:650;font-size:16px;
+    background:var(--orange);color:#1A192C;border-radius:12px;padding:14px 26px;
+    border-bottom:none;transition:background .15s, transform .08s;
+  }
+  .cta-btn:hover{background:#ffb42a}
+  .cta-btn:active{transform:scale(.97)}
+
   /* FOOTER */
   footer{padding:48px 0 64px}
   footer .links{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:22px;font-size:15px}
@@ -185,6 +209,10 @@
       <span class="chip">⏱ ok. 15 minut</span>
       <span class="chip">🧑‍💻 zero programowania</span>
       <span class="chip"><b>8 kroków</b> robi agent</span>
+    </div>
+    <div class="cta-line">
+      Nie masz jeszcze serwera? Ja korzystam z VPS-ów od <a href="https://hostinger.com/robertclaude">Hostingera</a>
+      (partner technologiczny kanału) - kod <span class="code-pill">ROBERTHOST</span> daje dodatkowy rabat.
     </div>
   </div>
 </header>
@@ -382,6 +410,20 @@ ssh -p TWOJ_PORT root@TWOJE_IP</pre>
       <li><strong>Porty poniżej 1024 są zablokowane dla zwykłego użytkownika</strong> - jak poprosisz agenta
       o wystawienie czegoś na porcie 80, nie wyjdzie. Zostajesz przy wyższych numerach.</li>
     </ul>
+  </div>
+</section>
+
+<section id="cta" style="border-bottom:0">
+  <div class="wrap">
+    <div class="cta-box">
+      <div>
+        <h3 style="margin-top:0">Nie masz jeszcze VPS-a?</h3>
+        <p style="margin-bottom:0">Cały ten poradnik zaczyna się od serwera. Ja swoje trzymam u Hostingera -
+        to partner technologiczny kanału, więc z kodem <span class="code-pill">ROBERTHOST</span> dostajesz
+        dodatkowy rabat, a ja małą prowizję. Sprzęt bez zmian, cena niższa.</p>
+      </div>
+      <a class="cta-btn" href="https://hostinger.com/robertclaude">Postaw serwer →</a>
+    </div>
   </div>
 </section>
 
