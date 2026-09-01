@@ -16,7 +16,24 @@ Masz VPS z Ubuntu (22.04 / 24.04) i chcesz go zabezpieczyć — ale nie wiesz od
 
 ## Quick Start
 
-### Opcja A: Z Claude Code (zalecane)
+### Opcja A: Wklej jeden prompt agentowi (zalecane — tak robię to w filmie)
+
+Otwórz Claude Code w nowym, pustym folderze i wklej to w całości:
+
+```text
+Sklonuj repozytorium https://github.com/Szewowsky/vps-security.git do bieżącego katalogu,
+przeczytaj plik .claude/commands/hardening.md i przeprowadź mnie przez opisany tam wizard
+zabezpieczenia serwera VPS - dokładnie według jego zasad bezpieczeństwa i kolejności faz.
+Idź krok po kroku: czekaj na wynik każdej komendy i nie przechodź dalej, jeśli test kroku
+nie przeszedł. Zacznij od zebrania danych (Faza 0), potem audyt PRZED, hardening, audyt PO
+- i na końcu pokaż mi zestawienie: co było na czerwono, a co jest teraz na zielono.
+Przez cały czas pilnuj, żebym nie stracił dostępu do serwera.
+```
+
+Agent sam pobierze skrypty, zapyta Cię o dane serwera i poprowadzi przez całość.
+Dokładna instrukcja krok po kroku (ze zrzutami i testami "czy zadziałało"): **[poradnik](https://szewowsky.github.io/vps-security/)**.
+
+### Opcja B: Z Claude Code, ręcznie przez slash command
 
 ```bash
 git clone https://github.com/Szewowsky/vps-security.git
@@ -27,7 +44,7 @@ claude
 
 Claude Code poprowadzi Cię interaktywnie przez wszystkie 8 kroków.
 
-### Opcja B: Ręcznie
+### Opcja C: Ręcznie
 
 ```bash
 git clone https://github.com/Szewowsky/vps-security.git

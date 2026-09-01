@@ -19,7 +19,7 @@ Ten pattern omija bash-guard bo lokalna komenda to tylko `scp` i `ssh "bash"`, n
 
 ## ZASADY BEZPIECZEŃSTWA (NIGDY NIE ŁAMAĆ)
 
-1. **NIE zmieniaj portu SSH** — hostingi (Hostinger, DigitalOcean) często blokują niestandardowe porty. Zostawiamy port jaki jest.
+1. **Zmiana portu SSH TYLKO w opcjonalnym Kroku 2b i TYLKO za wyraźną zgodą użytkownika** (default: zostaw port jaki jest). Ostrzeż: niektóre hostingi i sieci firmowe blokują niestandardowe porty. Nowy port NAJPIERW dopuść w UFW (jeśli aktywny), przetestuj połączenie na nowym porcie PRZED zamknięciem starego i NIE zamykaj bieżącej sesji do czasu udanego testu.
 2. **UFW: ZAWSZE `ufw allow SSH_PORT/tcp` PRZED `ufw enable`** — inaczej stracisz dostęp.
 3. **ZAWSZE testuj nowego usera PRZED wyłączeniem root** — osobnym połączeniem SSH.
 4. **Po KAŻDEJ zmianie SSH** — testuj połączenie zanim zrobisz cokolwiek dalej.
@@ -139,7 +139,7 @@ ssh -p PORT NOWY_USER@IP "echo 'STILL OK'"
 
 #### Krok 2: SSH hardening (jeśli FAIL)
 
-**NIE zmieniaj portu SSH.** Tylko parametry bezpieczeństwa:
+Parametry bezpieczeństwa (port zostaje — jego ewentualna zmiana to osobny, opcjonalny Krok 2b):
 
 ```bash
 ssh -p PORT USER@IP "sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak"
@@ -166,6 +166,48 @@ ssh -p PORT USER@IP "sudo systemctl restart ssh"
 ```bash
 ssh -p PORT USER@IP "echo 'SSH OK'"
 ```
+
+#### Krok 2b: Zmiana portu SSH (OPCJONALNA — pytaj, default: NIE)
+
+Zapytaj użytkownika (AskUserQuestion): "Zmienić port SSH z PORT na niestandardowy (np. 2222)? Mniej szumu botów w logach, ale to NIE jest zabezpieczenie samo w sobie — i niektóre hostingi/sieci blokują niestandardowe porty." Opcje: **[Zostaw PORT (default) / Zmień na inny]**.
+
+**Jeśli "Zostaw"** → przejdź do Kroku 3. **Jeśli "Zmień"** (użytkownik podaje NOWY_PORT, zakres 1024-65535):
+
+Wzorzec dwufazowy: **najpierw serwer słucha na OBU portach, stary zamykasz dopiero po udanym teście nowego.** `Port` w sshd to dyrektywa wielokrotna (każda linia = dodatkowy nasłuch), a drop-iny z `/etc/ssh/sshd_config.d/` są Include'owane na górze sshd_config - dlatego port trzymamy we WŁASNYM drop-inie, a definicje w innych plikach wyłączamy na końcu.
+
+1. Jeśli UFW jest aktywny — dopuść nowy port. Bez maskowania błędów (żadnego `|| true`) — jeśli `ufw allow` failuje, STOP:
+```bash
+ssh -p PORT USER@IP "if sudo ufw status | grep -q 'Status: active'; then sudo ufw allow NOWY_PORT/tcp; fi"
+```
+2. Faza A — dopisz nowy port OBOK starego (drop-in, oba porty):
+```bash
+ssh -p PORT USER@IP "printf 'Port PORT\nPort NOWY_PORT\n' | sudo tee /etc/ssh/sshd_config.d/00-port.conf"
+```
+3. Zweryfikuj konfigurację PRZED restartem (`sshd -T` czyta pliki, nie działający daemon — problem łapiesz, póki nic się jeszcze nie zmieniło):
+```bash
+ssh -p PORT USER@IP "sudo sshd -t && sudo sshd -T | grep -i '^port '"
+```
+Musi wypisać OBA porty. Jeśli nie — STOP, nie restartuj, pokaż użytkownikowi output.
+4. Restart i test NOWEGO portu w nowym połączeniu (stary port wciąż nasłuchuje — to jest siatka bezpieczeństwa):
+```bash
+ssh -p PORT USER@IP "sudo systemctl restart ssh"
+ssh -p NOWY_PORT USER@IP "echo 'NOWY PORT OK'"
+```
+**Jeśli test NIE przechodzi** (np. hosting albo sieć blokuje port): wycofaj się przez stary port — `ssh -p PORT USER@IP "sudo rm /etc/ssh/sshd_config.d/00-port.conf && sudo systemctl restart ssh"` — powiedz użytkownikowi, że port zostaje bez zmian, i przejdź do Kroku 3 ze starym PORT.
+5. Faza B — dopiero po udanym teście domknij zmianę: drop-in tylko z nowym portem, definicje `Port` w innych plikach wyłączone:
+```bash
+ssh -p NOWY_PORT USER@IP "printf 'Port NOWY_PORT\n' | sudo tee /etc/ssh/sshd_config.d/00-port.conf"
+ssh -p NOWY_PORT USER@IP "sudo sed -i 's/^Port /#Port /' /etc/ssh/sshd_config"
+ssh -p NOWY_PORT USER@IP "sudo grep -l '^Port ' /etc/ssh/sshd_config.d/*.conf | grep -v 00-port.conf || true"
+```
+Jeśli ostatnia komenda wskazała inne drop-iny z `Port` — zakomentuj `Port` także w nich (sed jak wyżej), zanim pójdziesz dalej. Potem walidacja + restart + test:
+```bash
+ssh -p NOWY_PORT USER@IP "sudo sshd -t && sudo sshd -T | grep -i '^port '"
+# musi pokazać JUŻ TYLKO NOWY_PORT
+ssh -p NOWY_PORT USER@IP "sudo systemctl restart ssh"
+ssh -p NOWY_PORT USER@IP "echo 'PORT DOMKNIETY'"
+```
+6. Od tego momentu używaj `PORT=NOWY_PORT` we WSZYSTKICH kolejnych komendach (Krok 3 `ufw allow`, Krok 4 fail2ban `port =`, Faza 5 audyt, Faza 6 alias). Jeśli UFW był aktywny — usuń regułę starego portu: `sudo ufw delete allow STARY_PORT/tcp`.
 
 #### Krok 3: Firewall UFW (jeśli FAIL)
 

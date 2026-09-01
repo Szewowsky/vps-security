@@ -4,7 +4,7 @@
 # =============================================================================
 # Ten skrypt:
 # 1. Tworzy drop-in /etc/ssh/sshd_config.d/00-hardening.conf
-#    (alfabetycznie ostatni = wygrywa nad cloud-init 50-*, 60-*)
+#    (alfabetycznie PIERWSZY = wygrywa nad cloud-init 50-*, 60-* — first-wins)
 # 2. Wyłącza root login (PermitRootLogin no)
 # 3. Wyłącza logowanie hasłem (wymusza klucze SSH)
 # 4. Ustawia timeout nieaktywnej sesji

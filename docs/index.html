@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zabezpiecz swój VPS z agentem · poradnik po odcinku</title>
+<meta name="description" content="Jedna wklejka do Claude Code i agent przeprowadza Cię przez 8 kroków zabezpieczenia serwera VPS. Audyt przed, audyt po, zero programowania.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1A192C;
+    --bg-2:#211F38;
+    --bg-3:#141322;
+    --ink:#EDEAF6;
+    --ink-dim:#A9A4C2;
+    --line:#312E4C;
+    --orange:#F39F06;
+    --orange-soft:rgba(243,159,6,.12);
+    --green:#4ADE80;
+    --red:#F87171;
+    --yellow:#FACC15;
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --disp:'Bricolage Grotesque','Instrument Sans',sans-serif;
+    --body:'Instrument Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);color:var(--ink);font-family:var(--body);
+    font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(1200px 500px at 80% -10%, rgba(243,159,6,.07), transparent 60%),
+      radial-gradient(900px 500px at -10% 30%, rgba(122,90,248,.08), transparent 55%);
+  }
+  ::selection{background:var(--orange);color:var(--bg)}
+  .wrap{max-width:860px;margin:0 auto;padding:0 24px}
+  a{color:var(--orange);text-decoration:none;border-bottom:1px solid rgba(243,159,6,.35)}
+  a:hover{border-bottom-color:var(--orange)}
+
+  /* HERO */
+  header{padding:72px 0 40px;border-bottom:1px solid var(--line)}
+  .kicker{
+    font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--orange);display:flex;align-items:center;gap:12px;margin-bottom:22px;
+  }
+  .kicker::before{content:"";display:inline-block;width:34px;height:2px;background:var(--orange)}
+  h1{
+    font-family:var(--disp);font-weight:750;font-size:clamp(34px,6vw,58px);
+    line-height:1.04;letter-spacing:-.02em;margin-bottom:20px;
+  }
+  h1 em{font-style:normal;color:var(--orange)}
+  .lede{font-size:clamp(17px,2.2vw,20px);color:var(--ink-dim);max-width:620px}
+  .lede strong{color:var(--ink);font-weight:600}
+  .hero-meta{
+    display:flex;flex-wrap:wrap;gap:10px;margin-top:28px;font-family:var(--mono);font-size:12.5px;
+  }
+  .chip{
+    border:1px solid var(--line);border-radius:999px;padding:6px 14px;color:var(--ink-dim);
+    background:rgba(255,255,255,.02)
+  }
+  .chip b{color:var(--green);font-weight:600}
+
+  /* SECTIONS */
+  section{padding:56px 0;border-bottom:1px solid var(--line)}
+  .step-tag{
+    font-family:var(--mono);font-size:13px;color:var(--orange);letter-spacing:.14em;margin-bottom:10px;
+  }
+  h2{
+    font-family:var(--disp);font-weight:700;font-size:clamp(24px,3.6vw,34px);
+    letter-spacing:-.015em;line-height:1.15;margin-bottom:16px;
+  }
+  h3{font-family:var(--disp);font-weight:650;font-size:19px;margin:26px 0 8px}
+  p{margin-bottom:14px;color:var(--ink-dim)}
+  p strong,li strong{color:var(--ink);font-weight:600}
+  ul.plain{list-style:none;margin:18px 0}
+  ul.plain li{
+    padding:10px 0 10px 30px;position:relative;color:var(--ink-dim);border-top:1px dashed var(--line)
+  }
+  ul.plain li:last-child{border-bottom:1px dashed var(--line)}
+  ul.plain li::before{content:"›";position:absolute;left:6px;color:var(--orange);font-family:var(--mono)}
+
+  /* CODE / TERMINAL */
+  .codeblock{
+    position:relative;margin:20px 0;border:1px solid var(--line);border-radius:12px;
+    background:var(--bg-3);overflow:hidden;
+  }
+  .codebar{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:9px 14px;border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;color:var(--ink-dim);
+    text-transform:uppercase;background:rgba(255,255,255,.02)
+  }
+  .copy-btn{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;cursor:pointer;
+    background:var(--orange);color:#1A192C;border:0;border-radius:7px;padding:6px 14px;
+    font-weight:600;transition:transform .08s ease, background .15s;
+  }
+  .copy-btn:hover{background:#ffb42a}
+  .copy-btn:active{transform:scale(.96)}
+  .copy-btn.done{background:var(--green)}
+  pre{
+    padding:18px 18px 20px;overflow-x:auto;font-family:var(--mono);
+    font-size:13.5px;line-height:1.7;color:#DCD8EE;white-space:pre-wrap;word-break:break-word;
+  }
+  .term pre{white-space:pre;word-break:normal}
+  .t-pass{color:var(--green)}
+  .t-fail{color:var(--red)}
+  .t-warn{color:var(--yellow)}
+  .t-dim{color:#6E6990}
+  .t-orange{color:var(--orange)}
+
+  /* CALLOUTS */
+  .warn{
+    display:flex;gap:14px;margin:22px 0;padding:16px 18px;border-radius:12px;
+    background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.3);
+  }
+  .warn .ico{font-size:20px;line-height:1.4}
+  .warn p{margin:0;color:var(--ink)}
+  .note{
+    margin:22px 0;padding:16px 18px;border-radius:12px;
+    background:var(--orange-soft);border:1px solid rgba(243,159,6,.3);
+  }
+  .note p{margin:0;color:var(--ink)}
+
+  /* TIMELINE (co się będzie działo) */
+  .flow{margin:26px 0;display:grid;gap:0}
+  .flow-item{
+    display:grid;grid-template-columns:56px 1fr;gap:16px;padding:16px 0;
+    border-top:1px dashed var(--line)
+  }
+  .flow-item:last-child{border-bottom:1px dashed var(--line)}
+  .flow-num{
+    font-family:var(--mono);font-size:13px;color:var(--orange);
+    border:1px solid var(--line);border-radius:10px;height:40px;width:56px;
+    display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.02)
+  }
+  .flow-item h4{font-family:var(--disp);font-size:16.5px;font-weight:650;margin-bottom:3px}
+  .flow-item p{margin:0;font-size:15.5px}
+
+  /* CARDS (3 drogi) */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:24px 0}
+  .card{
+    border:1px solid var(--line);border-radius:14px;padding:20px 18px;background:var(--bg-2);
+    position:relative;overflow:hidden;
+  }
+  .card.pick{border-color:rgba(243,159,6,.55)}
+  .card .badge{
+    position:absolute;top:14px;right:14px;font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.1em;color:var(--orange);border:1px solid rgba(243,159,6,.45);
+    border-radius:999px;padding:3px 9px;background:var(--orange-soft)
+  }
+  .card h4{font-family:var(--disp);font-size:17.5px;font-weight:650;margin-bottom:8px}
+  .card p{font-size:14.5px;margin-bottom:8px}
+  .card code{
+    font-family:var(--mono);font-size:12.5px;color:var(--orange);background:rgba(243,159,6,.08);
+    padding:2px 7px;border-radius:6px;
+  }
+
+  /* FOOTER */
+  footer{padding:48px 0 64px}
+  footer .links{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:22px;font-size:15px}
+  footer p{font-size:13.5px;color:var(--ink-dim)}
+  .mascot{width:88px;image-rendering:pixelated;margin-bottom:18px;border-radius:10px}
+
+  @media (max-width:560px){
+    header{padding:52px 0 34px}
+    section{padding:44px 0}
+    .flow-item{grid-template-columns:44px 1fr;gap:12px}
+    .flow-num{width:44px;height:36px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="kicker">Poradnik po odcinku</div>
+    <h1>Zabezpiecz swój VPS.<br><em>Poprowadzi Cię agent.</em></h1>
+    <p class="lede">Świeży serwer VPS dostaje pierwsze pukanie od botów kilka minut po starcie.
+    Zamiast wykładu o ośmiu krokach dostajesz <strong>jedną wklejkę do Claude Code</strong> -
+    agent robi audyt, zabezpiecza serwer i pokazuje różnicę. Ty tylko potwierdzasz.</p>
+    <div class="hero-meta">
+      <span class="chip">⏱ ok. 15 minut</span>
+      <span class="chip">🧑‍💻 zero programowania</span>
+      <span class="chip"><b>8 kroków</b> robi agent</span>
+    </div>
+  </div>
+</header>
+
+<!-- [PO NAGRANIU] Sekcja "Dowody z logów": liczby z journalctl świeżego serwera
+     (nieudane próby logowania przed hardeningiem, top atakowane konta, rekordzista).
+     Zbierz: sudo journalctl -u ssh | grep "Failed password" | wc -l  itd. -->
+
+<section id="zanim">
+  <div class="wrap">
+    <div class="step-tag">ZANIM ZACZNIESZ</div>
+    <h2>Czego potrzebujesz</h2>
+    <ul class="plain">
+      <li><strong>Serwer VPS z Ubuntu</strong> (22.04 lub 24.04) - może być świeżo postawiony, tak jest nawet lepiej.</li>
+      <li><strong>Dane serwera:</strong> adres IP, login (zwykle <code style="font-family:var(--mono);color:var(--orange)">root</code>) oraz hasło albo klucz SSH dodany w panelu hostingu.</li>
+      <li><strong>Claude Code na Twoim komputerze.</strong> Agent działa lokalnie i łączy się z serwerem za Ciebie.</li>
+    </ul>
+    <div class="warn">
+      <span class="ico">⚠️</span>
+      <p><strong>Jedna żelazna zasada:</strong> przez cały proces trzymaj otwarte drugie okno terminala
+      zalogowane na serwer. Zmiany w SSH robi się z siatką bezpieczeństwa - już zalogowanej sesji nic nie zrywa,
+      więc gdyby coś poszło nie tak, tamto okno jest Twoją drogą powrotną. Agent też będzie tego pilnował,
+      ale pas i szelki jeszcze nikomu nie zaszkodziły.</p>
+    </div>
+  </div>
+</section>
+
+<section id="krok-1">
+  <div class="wrap">
+    <div class="step-tag">KROK 1 / 3</div>
+    <h2>Otwórz Claude Code w pustym folderze</h2>
+    <p>Nowy folder, żeby agent miał czyste biurko. Wpisz w terminalu na <strong>swoim komputerze</strong>:</p>
+    <div class="codeblock">
+      <div class="codebar"><span>Twój komputer · terminal</span><button class="copy-btn" data-copy="cb1">Kopiuj</button></div>
+      <pre id="cb1">mkdir vps-hardening && cd vps-hardening && claude</pre>
+    </div>
+    <p>Po chwili patrzysz na okno rozmowy z agentem. To wszystko, co musisz umieć z terminala.</p>
+  </div>
+</section>
+
+<section id="krok-2">
+  <div class="wrap">
+    <div class="step-tag">KROK 2 / 3</div>
+    <h2>Wklej agentowi ten prompt</h2>
+    <p>Całość, jednym wklejeniem. W prompcie jest wszystko: skąd wziąć skrypty, w jakiej kolejności iść
+    i czego pilnować, żebyś nie stracił dostępu do serwera.</p>
+    <div class="codeblock">
+      <div class="codebar"><span>Prompt · wklej do Claude Code</span><button class="copy-btn" data-copy="cb2">Kopiuj prompt</button></div>
+      <pre id="cb2">Sklonuj repozytorium https://github.com/Szewowsky/vps-security.git do bieżącego katalogu,
+przeczytaj plik .claude/commands/hardening.md i przeprowadź mnie przez opisany tam wizard
+zabezpieczenia serwera VPS - dokładnie według jego zasad bezpieczeństwa i kolejności faz.
+Idź krok po kroku: czekaj na wynik każdej komendy i nie przechodź dalej, jeśli test kroku
+nie przeszedł. Zacznij od zebrania danych (Faza 0), potem audyt PRZED, hardening, audyt PO
+- i na końcu pokaż mi zestawienie: co było na czerwono, a co jest teraz na zielono.
+Przez cały czas pilnuj, żebym nie stracił dostępu do serwera.</pre>
+    </div>
+    <p>Agent zapyta Cię o IP, port, login i nazwę nowego użytkownika. Odpowiadasz normalnie, po ludzku -
+    resztę robi sam.</p>
+  </div>
+</section>
+
+<section id="krok-3">
+  <div class="wrap">
+    <div class="step-tag">KROK 3 / 3</div>
+    <h2>Co się będzie działo (i gdzie masz coś do powiedzenia)</h2>
+    <div class="flow">
+      <div class="flow-item">
+        <div class="flow-num">00</div>
+        <div><h4>Audyt PRZED</h4>
+        <p>Agent odpala skrypt audytu na serwerze. Na świeżej maszynie zobaczysz sporo czerwonego - to jest punkt odniesienia, do którego wrócimy na końcu.</p></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">01</div>
+        <div><h4>Nowy użytkownik zamiast roota</h4>
+        <p>Powstaje zwykłe konto z uprawnieniami sudo. Agent najpierw <strong>testuje logowanie nowym userem</strong>, dopiero potem wyłącza roota. Nigdy odwrotnie.</p></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">02</div>
+        <div><h4>SSH na klucz, nie na hasło</h4>
+        <p>Logowanie hasłem znika - zostaje klucz, którego nie da się zgadywać. Do tego limity prób i kilka porządków w konfiguracji.</p></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">02b</div>
+        <div><h4>Port SSH - Twoja decyzja</h4>
+        <p>Agent zapyta, czy zmienić port na niestandardowy. Mniej szumu botów w logach, ale to kosmetyka, nie zamek - a niektóre sieci blokują niestandardowe porty. Nie wiesz? Zostaw domyślny, tak jest bezpiecznie.</p></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">03</div>
+        <div><h4>Firewall (UFW)</h4>
+        <p>Domyślnie nic nie wchodzi, wyjątek dostaje SSH. Agent dopisuje wyjątek <strong>zanim</strong> włączy zaporę - kolejność, która ratuje przed zatrzaśnięciem drzwi.</p></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">04</div>
+        <div><h4>Fail2ban - bramkarz od liczenia prób</h4>
+        <p>Kilka nieudanych logowań z jednego adresu i adres wylatuje na bana. Bot dostaje ciszę zamiast kolejnych podejść.</p></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">05+</div>
+        <div><h4>Porządki: IPv6, monitoring logów, auto-aktualizacje</h4>
+        <p>System sam dociąga łatki bezpieczeństwa. Jedna rzecz mniej na głowie, na zawsze.</p></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">✓</div>
+        <div><h4>Audyt PO</h4>
+        <p>Ten sam skrypt jeszcze raz. Te same pozycje, tym razem na zielono. To jest cały dowód - i moment, w którym możesz zamknąć zapasowy terminal.</p></div>
+      </div>
+    </div>
+    <div class="note">
+      <p><strong>Przy każdej ryzykownej zmianie agent zatrzymuje się i pyta.</strong> Jeśli jakiś krok
+      się wysypie, nie brnie dalej na ślepo - pokazuje błąd i czeka na Ciebie. Tak jest napisany wizard.</p>
+    </div>
+  </div>
+</section>
+
+<section id="werdykt">
+  <div class="wrap">
+    <div class="step-tag">SPRAWDŹ, CZY ZADZIAŁAŁO</div>
+    <h2>Czerwone ma być zielone</h2>
+    <p>Na końcu agent pokaże Ci porównanie audytów. Powinno wyglądać mniej więcej tak:</p>
+    <div class="codeblock term">
+      <div class="codebar"><span>Audyt · przed → po</span></div>
+      <pre><span class="t-dim">━━━ Użytkownik (non-root) ━━━</span>
+<span class="t-fail">[FAIL]</span>  Brak użytkownika z sudo — logujesz się jako root!   <span class="t-dim">→</span>  <span class="t-pass">[PASS]</span>
+<span class="t-dim">━━━ SSH ━━━</span>
+<span class="t-fail">[FAIL]</span>  Logowanie hasłem włączone                            <span class="t-dim">→</span>  <span class="t-pass">[PASS]</span>
+<span class="t-fail">[FAIL]</span>  Root może logować się przez SSH                      <span class="t-dim">→</span>  <span class="t-pass">[PASS]</span>
+<span class="t-dim">━━━ Firewall / Fail2ban ━━━</span>
+<span class="t-fail">[FAIL]</span>  UFW nieaktywny                                       <span class="t-dim">→</span>  <span class="t-pass">[PASS]</span>
+<span class="t-fail">[FAIL]</span>  Fail2ban niezainstalowany                            <span class="t-dim">→</span>  <span class="t-pass">[PASS]</span></pre>
+    </div>
+    <p>Dwa szybkie testy własnoręczne, dla spokoju ducha (podmień dane na swoje):</p>
+    <div class="codeblock">
+      <div class="codebar"><span>Twój komputer · terminal</span><button class="copy-btn" data-copy="cb3">Kopiuj</button></div>
+      <pre id="cb3"># nowy użytkownik wchodzi:
+ssh -p TWOJ_PORT twoj_user@TWOJE_IP "echo OK"
+
+# a root już nie (to jest DOBRA wiadomość):
+ssh -p TWOJ_PORT root@TWOJE_IP</pre>
+    </div>
+    <p>Pierwsza komenda ma zwrócić <span class="t-pass" style="font-family:var(--mono)">OK</span>,
+    druga ma Cię <strong>odrzucić</strong>. Jeśli tak jest - serwer stoi, drzwi są Twoje.</p>
+  </div>
+</section>
+
+<section id="polaczenie">
+  <div class="wrap">
+    <div class="step-tag">CO DALEJ</div>
+    <h2>Połącz się z komputera - trzy drogi</h2>
+    <p>Serwer zabezpieczony, agent na nim mieszka. Teraz właściwa część odcinka: jak się do niego
+    wpinać na co dzień. Wszystkie trzy drogi korzystają z tego samego aliasu w
+    <code style="font-family:var(--mono);color:var(--orange)">~/.ssh/config</code> - robisz go raz.</p>
+    <div class="cards">
+      <div class="card">
+        <h4>01 · Terminal</h4>
+        <p>Cała długa komenda z portem, userem i adresem zamienia się w jedno słowo: <code>ssh vps</code>.
+        Sesję owijasz w <code>tmux</code>, żeby nie umierała razem z oknem.</p>
+      </div>
+      <div class="card pick">
+        <span class="badge">z tej korzystam</span>
+        <h4>02 · Aplikacja desktopowa</h4>
+        <p>Ten sam alias w polu SSH Host. Przy pierwszym połączeniu aplikacja <strong>sama instaluje
+        Claude Code na serwerze</strong>, a panel plików pokazuje drzewo katalogów z VPS-a, nie z Twojego dysku.</p>
+      </div>
+      <div class="card">
+        <h4>03 · Edytor (Remote-SSH)</h4>
+        <p>VS Code albo Cursor z wtyczką Remote-SSH - ten sam serwer, z poziomu edytora, do którego
+        jesteś przyzwyczajony. Najlepsze przy większym grzebaniu w plikach.</p>
+      </div>
+    </div>
+    <p>Kompletna instrukcja połączenia (alias, konfiguracja aplikacji, tmux, tabela "czego się nie
+    spodziewać") czeka w osobnym gotowcu:
+    <a href="https://github.com/Szewowsky/claude-code-vps-hostinger/blob/main/POLACZENIE-Z-KOMPUTERA.md">POLACZENIE-Z-KOMPUTERA.md</a>
+    - też w dwóch trybach: prompt dla agenta albo pięć minut ręcznie.</p>
+    <div class="note">
+      <p><strong>Jedna różnica, o której warto wiedzieć:</strong> aplikacja Claude Code instaluje agenta
+      na serwerze sama. Codex tego nie robi - jego aplikacja wymaga, żeby <code style="font-family:var(--mono)">codex</code>
+      był już wgrany na serwerze, inaczej się nie połączy.</p>
+    </div>
+  </div>
+</section>
+
+<section id="potkniecia">
+  <div class="wrap">
+    <div class="step-tag">POTKNIĘCIA</div>
+    <h2>Zjedzone za Ciebie</h2>
+    <p>Rzeczy, na których sam się przyciąłem, żebyś Ty nie musiał:</p>
+    <ul class="plain">
+      <li><strong>Klucz krzyczy o uprawnieniach</strong> ("UNPROTECTED PRIVATE KEY FILE") -
+      <code style="font-family:var(--mono);color:var(--orange)">chmod 600</code> na pliku klucza i po sprawie.</li>
+      <li><strong>Hasło albo klucz ze znakiem <code style="font-family:var(--mono)">!</code></strong> -
+      wpisany wprost w terminalu potrafi się popsuć. Bezpieczniej podawać przez <code style="font-family:var(--mono)">printf</code>
+      i standardowe wejście, nie jako argument.</li>
+      <li><strong>Bez roota część komend przestaje działać wprost</strong> - wszystko, co dotyka
+      <code style="font-family:var(--mono)">/root</code>, opakowujesz w <code style="font-family:var(--mono)">sudo</code>.</li>
+      <li><strong>Porty poniżej 1024 są zablokowane dla zwykłego użytkownika</strong> - jak poprosisz agenta
+      o wystawienie czegoś na porcie 80, nie wyjdzie. Zostajesz przy wyższych numerach.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <img class="mascot" src="banner.png" alt="Maskotka repo vps-security - pixel-artowa ośmiornica-rycerz z tarczą">
+    <div class="links">
+      <a href="https://github.com/Szewowsky/vps-security">Repo: skrypty + wizard</a>
+      <a href="https://github.com/Szewowsky/claude-code-vps-hostinger">Repo: Claude Code na VPS</a>
+      <a href="https://youtube.com/@robert_szewczyk">Kanał: Robert Szewczyk</a>
+    </div>
+    <p>Materiał towarzyszący do odcinka o łączeniu się z Claude Code na VPS z komputera.
+    Skrypty są idempotentne - można je odpalać wielokrotnie bez szkody. Testuj na świeżym serwerze,
+    zanim użyjesz na produkcji.</p>
+  </div>
+</footer>
+
+<script>
+  function fallbackCopy(text){
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(ta);
+    return ok;
+  }
+  document.querySelectorAll('.copy-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var text = document.getElementById(btn.dataset.copy).innerText;
+      var mark = function(ok){
+        var old = btn.textContent;
+        btn.textContent = ok ? 'Skopiowane ✓' : 'Zaznacz i skopiuj ręcznie';
+        if (ok) btn.classList.add('done');
+        setTimeout(function(){ btn.textContent = old; btn.classList.remove('done'); }, 1800);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function(){ mark(true); },
+          function(){ mark(fallbackCopy(text)); });
+      } else {
+        mark(fallbackCopy(text));
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
