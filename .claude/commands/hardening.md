@@ -309,6 +309,30 @@ ssh -p PORT USER@IP "sudo systemctl start clamav-freshclam"
 ssh -p PORT USER@IP "sudo systemctl enable clamav-freshclam"
 ```
 
+### Faza 4b: Claude Code dla nowego użytkownika (OPCJONALNA — pytaj)
+
+Szablony hostingowe (np. Hostinger "z Claude Code") instalują agenta natywnie TYLKO dla roota
+(`/root/.local`). Nowy użytkownik ma własny katalog domowy i po hardeningu NIE widzi `claude`.
+
+Sprawdź:
+```bash
+ssh -p PORT NOWY_USER@IP "command -v claude || echo BRAK"
+```
+
+**Jeśli BRAK** → zapytaj użytkownika (AskUserQuestion): "Claude Code jest zainstalowany tylko dla
+roota. Zainstalować go teraz dla NOWY_USER?" Opcje:
+- **[Zainstaluj teraz]** → oficjalny instalator, jako NOWY_USER, bez roota:
+```bash
+ssh -p PORT NOWY_USER@IP "curl -fsSL https://claude.ai/install.sh | bash"
+ssh -p PORT NOWY_USER@IP "grep -q '.local/bin' ~/.bashrc || echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc"
+ssh -p PORT NOWY_USER@IP "bash -lc 'command -v claude'"
+```
+Dopisek PATH jest potrzebny, żeby `claude` działał też w tmux i powłokach nielogujących.
+Logowanie (auth) jest per-user — użytkownik zaloguje się na nowo przy pierwszym `claude`;
+instalacja roota zostaje nietknięta.
+- **[Pomiń]** → poinformuj: aplikacja desktopowa Claude Code i tak zainstaluje agenta sama przy
+pierwszym połączeniu SSH tego użytkownika; ręcznie zawsze można później tą samą komendą curl.
+
 ### Faza 5: Weryfikacja
 
 Uruchom audyt ponownie:

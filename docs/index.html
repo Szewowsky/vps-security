@@ -465,6 +465,13 @@ claude</pre>
     <code style="font-family:var(--mono)">tmux attach -t praca</code>.
     Na Ubuntu tmux zwykle jest od razu - jeśli serwer odpowie „command not found", doinstalujesz go
     jedną komendą: <code style="font-family:var(--mono)">sudo apt install -y tmux</code>.</p>
+    <div class="note">
+      <p><strong><code style="font-family:var(--mono)">claude: command not found</code>?</strong>
+      Szablony hostingowe instalują Claude Code tylko dla roota - Twój nowy użytkownik go nie widzi.
+      Trzy wyjścia: wizard z Kroku 2 sam to wykryje i zapyta, czy doinstalować; aplikacja desktopowa
+      (droga 02) zainstaluje agenta automatycznie przy pierwszym połączeniu; albo ręcznie, bez roota:
+      <code style="font-family:var(--mono)">curl -fsSL https://claude.ai/install.sh | bash</code>.</p>
+    </div>
     </div>
     </details>
 
@@ -663,6 +670,10 @@ z listy → otwarcie folderu na serwerze.
   użyj 3000/8080.
 - Hasło lub klucz ze znakiem "!" psuje się w terminalu → podawaj przez printf i stdin, nie jako argument.
 - Uwaga: Codex czyta ~/.ssh/config, ale NIE instaluje się sam na serwerze - wymaga codex już w PATH.
+- "claude: command not found" u nowego użytkownika po hardeningu → szablony hostingowe instalują
+  Claude Code tylko dla roota; zainstaluj dla usera (bez roota): curl -fsSL https://claude.ai/install.sh | bash
+  i dopisz ~/.local/bin do PATH w ~/.bashrc - albo pozwól aplikacji desktopowej zrobić to samej
+  przy pierwszym połączeniu.
 
 Źródło i pełne materiały: https://github.com/Szewowsky/vps-security oraz
 https://github.com/Szewowsky/claude-code-vps-hostinger/blob/main/POLACZENIE-Z-KOMPUTERA.md
