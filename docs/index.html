@@ -465,6 +465,20 @@ claude</pre>
     <code style="font-family:var(--mono)">tmux attach -t praca</code>.
     Na Ubuntu tmux zwykle jest od razu - jeśli serwer odpowie „command not found", doinstalujesz go
     jedną komendą: <code style="font-family:var(--mono)">sudo apt install -y tmux</code>.</p>
+    <p>Ściąga tmux na co dzień:</p>
+    <div class="codeblock">
+      <div class="codebar"><span>tmux · najczęstsze komendy</span><button class="copy-btn" data-copy="cb8">Kopiuj</button></div>
+      <pre id="cb8">tmux ls                      # lista wszystkich sesji
+tmux new -s praca            # nowa sesja o nazwie "praca"
+tmux attach -t praca         # wejście do istniejącej sesji
+# Ctrl+B, potem D            # wyjście BEZ zabijania sesji
+tmux kill-session -t praca   # usunięcie jednej sesji
+tmux kill-server             # ubija wszystkie sesje naraz</pre>
+    </div>
+    <p style="font-size:14.5px">Drobiazg, który potrafi zmylić: sesja tmux pamięta środowisko z chwili
+    startu. Jeśli coś doinstalowałeś (np. <code style="font-family:var(--mono)">claude</code>), gdy sesja
+    już działała, w jej środku wpisz <code style="font-family:var(--mono)">source ~/.bashrc</code> -
+    albo załóż sesję od nowa.</p>
     <div class="note">
       <p><strong><code style="font-family:var(--mono)">claude: command not found</code>?</strong>
       Szablony hostingowe instalują Claude Code tylko dla roota - Twój nowy użytkownik go nie widzi.
