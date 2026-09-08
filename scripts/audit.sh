@@ -99,7 +99,10 @@ fi
 FOUND_KEYS=false
 for CHECK_DIR in "$HOME/.ssh" /root/.ssh /home/*/.ssh; do
     if [[ -f "$CHECK_DIR/authorized_keys" ]] && [[ -s "$CHECK_DIR/authorized_keys" ]]; then
-        KEY_COUNT=$(wc -l < "$CHECK_DIR/authorized_keys")
+        # grep -c '.' zamiast wc -l: authorized_keys od hostingów bywa bez końcowego \n,
+        # a wtedy wc -l zwraca 0 przy istniejącym kluczu.
+        KEY_COUNT=$(grep -c '^ssh-\|^ecdsa-\|^sk-' "$CHECK_DIR/authorized_keys" 2>/dev/null || echo 0)
+        [[ "$KEY_COUNT" -eq 0 ]] && KEY_COUNT=$(grep -c . "$CHECK_DIR/authorized_keys" 2>/dev/null || echo 0)
         pass "Klucze SSH skonfigurowane ($KEY_COUNT kluczy w $CHECK_DIR)"
         FOUND_KEYS=true
         break
@@ -125,7 +128,9 @@ header "3. Firewall (UFW)"
 
 if command -v ufw &>/dev/null; then
     UFW_STATUS=$(ufw status 2>/dev/null | head -1)
-    if echo "$UFW_STATUS" | grep -q "active"; then
+    # UWAGA: "inactive" zawiera "active" - wzorzec musi być zakotwiczony,
+    # inaczej wyłączony firewall raportuje się jako PASS.
+    if echo "$UFW_STATUS" | grep -q "^Status: active"; then
         pass "UFW aktywny"
         OPEN_PORTS=$(ufw status | grep "ALLOW" | awk '{print $1}' | sort -u | tr '\n' ', ')
         echo -e "       Otwarte porty: ${OPEN_PORTS%,}"

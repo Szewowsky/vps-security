@@ -190,10 +190,33 @@ Teraz powinno być dużo więcej zielonego. Gratulacje — Twój serwer jest zab
 4. Napraw: `nano /etc/ssh/sshd_config`
 5. Restart: `systemctl restart ssh`
 
-### Fail2ban zbanował moje IP
+### Fail2ban zbanował mnie po testach
+
+**Objaw:** zaraz po skonfigurowaniu fail2ban przestajesz się łączyć. Połączenie jest natychmiast
+odrzucane (`Connection refused`), a nie zawieszone - to znak bana, nie awarii sieci.
+
+**Przyczyna:** wcześniejsze testy ("czy root jest już odrzucany?") zostawiły w logu nieudane próby
+logowania. Fail2ban po starcie przelicza wpisy z ostatniej godziny i banuje Twój adres na dobę.
+
+**Co robisz:** wejdź z innego adresu - konsola w panelu hostingu (Hostinger → hPanel → Terminal)
+albo inny serwer - i odbanuj się:
+
 ```
 sudo fail2ban-client set sshd unbanip TWOJE_IP
 ```
+
+Potem dopisz swój adres do listy wyjątków, żeby to się nie powtórzyło:
+
+```
+sudo nano /etc/fail2ban/jail.local
+# w sekcji [DEFAULT] dopisz:
+# ignoreip = 127.0.0.1/8 ::1 TWOJE_IP
+sudo systemctl restart fail2ban
+sudo fail2ban-client status sshd     # ma być "Currently banned: 0"
+```
+
+Jeśli Twoje IP jest dynamiczne, wpis z czasem przestanie działać - nie zaszkodzi, ale trzeba go
+wtedy zaktualizować.
 
 ### ClamAV zjada za dużo pamięci
 ```

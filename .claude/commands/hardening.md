@@ -17,6 +17,24 @@ ssh -p PORT -i ~/.ssh/id_ed25519 USER@IP "bash /tmp/step.sh"
 
 Ten pattern omija bash-guard bo lokalna komenda to tylko `scp` i `ssh "bash"`, nie `usermod`/`chmod`.
 
+**Ważne rozróżnienie (sprawdzone w przebiegu testowym):** `sudo` wewnątrz **heredoca** zapisywanego
+do pliku przechodzi. `sudo` w komendzie **inline** (`ssh USER@IP "sudo ..."`) oraz w **`printf`**
+zapisującym skrypt jest blokowany - także wtedy, gdy ma się wykonać dopiero po drugiej stronie SSH.
+Dlatego każdy krok z `sudo` buduj tak:
+
+```bash
+cat > /tmp/step.sh <<'EOS'     # heredoc - przechodzi
+#!/usr/bin/env bash
+set -euo pipefail
+sudo ufw enable
+EOS
+scp -P PORT -i ~/.ssh/id_ed25519 /tmp/step.sh USER@IP:/tmp/step.sh
+ssh -p PORT -i ~/.ssh/id_ed25519 USER@IP "bash /tmp/step.sh"
+```
+
+Komendy `ssh ... "sudo ..."` w krokach niżej zapisane są skrótowo, dla czytelności - wykonuj je
+zawsze tym wzorcem. Dopóki jesteś rootem (Kroki 1-2), `sudo` nie jest w ogóle potrzebne.
+
 ## ZASADY BEZPIECZEŃSTWA (NIGDY NIE ŁAMAĆ)
 
 1. **Zmiana portu SSH TYLKO w opcjonalnym Kroku 2b i TYLKO za wyraźną zgodą użytkownika** (default: zostaw port jaki jest). Ostrzeż: niektóre hostingi i sieci firmowe blokują niestandardowe porty. Nowy port NAJPIERW dopuść w UFW (jeśli aktywny), przetestuj połączenie na nowym porcie PRZED zamknięciem starego i NIE zamykaj bieżącej sesji do czasu udanego testu.
@@ -213,8 +231,13 @@ ssh -p NOWY_PORT USER@IP "echo 'PORT DOMKNIETY'"
 
 **KRYTYCZNE:** Dodaj port SSH PRZED włączeniem firewalla!
 
+Świeży obraz hostingu ma pustą listę pakietów - **bez `apt-get update` pierwsza instalacja padnie
+na `E: Unable to locate package`**. `DEBIAN_FRONTEND=noninteractive` dawaj przy każdym `apt-get
+install`: bez tego debconf w sesji bez TTY potrafi zawiesić instalację na kilka minut.
+
 ```bash
-ssh -p PORT USER@IP "sudo apt-get install -y -qq ufw"
+ssh -p PORT USER@IP "sudo apt-get update -qq"
+ssh -p PORT USER@IP "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ufw"
 ssh -p PORT USER@IP "sudo ufw default deny incoming"
 ssh -p PORT USER@IP "sudo ufw default allow outgoing"
 ssh -p PORT USER@IP "sudo ufw allow PORT/tcp"
@@ -239,14 +262,36 @@ ssh -p PORT USER@IP "echo 'UFW OK' && sudo ufw status"
 
 #### Krok 4: Fail2ban (jeśli FAIL)
 
+**OSTRZEŻENIE - to jedyny krok, który potrafi odciąć Ci dostęp do serwera.** W Kroku 1 wizard każe
+potwierdzić, że root jest wyłączony (`ssh root@... ` → `Permission denied`). Każda taka próba to
+nieudana autoryzacja w `auth.log`. Fail2ban po instalacji przelicza **historyczne** wpisy z ostatniej
+godziny (`findtime = 3600`) i przy `maxretry = 3` potrafi zbanować Twoje IP na 24 h **natychmiast po
+starcie**. Objaw: `ssh: connect to host IP port PORT: Connection refused` (nie timeout - `banaction = ufw`
+wstawia REJECT). Odzyskanie dostępu wymaga wtedy wejścia z innego adresu (ProxyJump przez inny serwer,
+konsola w panelu hostingu) i `sudo fail2ban-client set sshd unbanip TWOJE_IP`.
+
+Dlatego **przed restartem fail2ban** ustal publiczne IP administratora i wpisz je do `ignoreip`.
+Kolejność źródeł: zapytaj użytkownika o jego publiczne IP, a jeśli go nie zna - weź adres, z którego
+przyszło bieżące połączenie SSH (`echo $SSH_CONNECTION | awk '{print $1}'`, ewentualnie
+`curl -s https://api.ipify.org` z jego komputera).
+
 ```bash
-ssh -p PORT USER@IP "sudo apt-get install -y -qq fail2ban"
+ssh -p PORT USER@IP "sudo apt-get update -qq"
+ssh -p PORT USER@IP "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq fail2ban"
 ```
 
-Konfiguracja — WAŻNE: wstaw FAKTYCZNY numer portu SSH (np. 22), nie placeholder:
+Odczytaj IP administratora (to samo połączenie, z którego pracujesz):
+```bash
+ssh -p PORT USER@IP "echo \$SSH_CONNECTION | awk '{print \$1}'"
+```
+
+Konfiguracja - WAŻNE: wstaw FAKTYCZNY numer portu SSH (np. 22) i FAKTYCZNE IP administratora,
+nie placeholdery. Jeśli IP administratora jest dynamiczne, powiedz to użytkownikowi wprost: wpis
+z czasem stanie się bezużyteczny (ale nie szkodliwy), a zmienia się go w `/etc/fail2ban/jail.local`.
 ```bash
 ssh -p PORT USER@IP "sudo bash -c 'cat > /etc/fail2ban/jail.local << JAILEOF
 [DEFAULT]
+ignoreip = 127.0.0.1/8 ::1 IP_ADMINA
 bantime = 86400
 findtime = 3600
 maxretry = 3
@@ -267,6 +312,16 @@ ssh -p PORT USER@IP "sudo systemctl restart fail2ban"
 ssh -p PORT USER@IP "sudo fail2ban-client status sshd"
 ```
 
+W wyniku sprawdź `Currently banned: 0`. Jeśli widzisz tam swoje IP - `ignoreip` nie zadziałało
+(literówka albo złe IP): odbanuj się natychmiast, póki masz jeszcze otwartą sesję, i popraw wpis.
+```bash
+ssh -p PORT USER@IP "sudo fail2ban-client set sshd unbanip IP_ADMINA"
+```
+
+**Alternatywa, jeśli nie znasz IP administratora:** wszystkie testy generujące nieudane logowania
+(w szczególności potwierdzenie, że root jest odrzucany) zrób **PRZED** instalacją fail2ban,
+a jail sshd uruchom dopiero na końcu Fazy 4. Nigdy odwrotnie.
+
 #### Krok 5: Wyłącz IPv6 (jeśli WARN)
 
 ```bash
@@ -281,14 +336,25 @@ ssh -p PORT USER@IP "sudo sysctl -p /etc/sysctl.d/99-disable-ipv6.conf"
 #### Krok 6: Log monitoring (jeśli WARN)
 
 ```bash
-ssh -p PORT USER@IP "sudo apt-get install -y -qq logwatch"
+ssh -p PORT USER@IP "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq logwatch"
 ssh -p PORT USER@IP "sudo mkdir -p /etc/logwatch/conf /var/log/logwatch"
+```
+
+**Uwaga:** logwatch ciągnie za sobą postfixa, a postfix zadaje pytanie w debconf. Bez
+`DEBIAN_FRONTEND=noninteractive` ten krok **wiesza się w nieskończoność** (w przebiegu testowym stał
+3 minuty i zablokował blokadę dpkg dla wszystkiego innego). Jeśli mimo to zawiśnie:
+
+```bash
+ssh -p PORT USER@IP "sudo pkill -f apt-get"
+ssh -p PORT USER@IP "sudo dpkg --configure -a --force-confdef --force-confold"
+ssh -p PORT USER@IP "echo 'postfix postfix/main_mailer_type select No configuration' | sudo debconf-set-selections"
+ssh -p PORT USER@IP "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq logwatch"
 ```
 
 #### Krok 7: Auto-updates (jeśli FAIL)
 
 ```bash
-ssh -p PORT USER@IP "sudo apt-get install -y -qq unattended-upgrades apt-listchanges"
+ssh -p PORT USER@IP "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq unattended-upgrades apt-listchanges"
 ssh -p PORT USER@IP "sudo bash -c 'cat > /etc/apt/apt.conf.d/20auto-upgrades << EOF
 APT::Periodic::Update-Package-Lists \"1\";
 APT::Periodic::Unattended-Upgrade \"1\";
@@ -302,7 +368,7 @@ EOF'"
 
 Jeśli tak:
 ```bash
-ssh -p PORT USER@IP "sudo apt-get install -y -qq clamav clamav-daemon"
+ssh -p PORT USER@IP "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq clamav clamav-daemon"
 ssh -p PORT USER@IP "sudo systemctl stop clamav-freshclam"
 ssh -p PORT USER@IP "sudo freshclam"
 ssh -p PORT USER@IP "sudo systemctl start clamav-freshclam"
@@ -335,10 +401,14 @@ pierwszym połączeniu SSH tego użytkownika; ręcznie zawsze można później t
 
 ### Faza 5: Weryfikacja
 
-Uruchom audyt ponownie:
+Uruchom audyt ponownie - **koniecznie przez `sudo`**:
 ```bash
-ssh -p PORT FINAL_USER@IP "bash /tmp/audit.sh 2>&1 | tee /tmp/audit-result.txt"
+ssh -p PORT FINAL_USER@IP "sudo bash /tmp/audit.sh 2>&1 | tee /tmp/audit-result.txt"
 ```
+
+Bez `sudo` polecenia `sshd -T`, `ufw status` i `fail2ban-client status sshd` nie działają, a audyt
+raportuje wtedy fałszywe FAIL-e (root login "włączony", UFW "nieaktywny") na poprawnie zabezpieczonym
+serwerze. W przebiegu testowym to była różnica między "FAIL: 2" a "12 PASS, 0 FAIL" na tej samej maszynie.
 
 Pokaż porównanie: co było FAIL → co jest teraz PASS.
 

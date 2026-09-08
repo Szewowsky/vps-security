@@ -582,6 +582,14 @@ tmux kill-server             # ubija wszystkie sesje naraz</pre>
       <code style="font-family:var(--mono)">/root</code>, opakowujesz w <code style="font-family:var(--mono)">sudo</code>.</li>
       <li><strong>Porty poniżej 1024 są zablokowane dla zwykłego użytkownika</strong> - jak poprosisz agenta
       o wystawienie czegoś na porcie 80, nie wyjdzie. Zostajesz przy wyższych numerach.</li>
+      <li><strong>Fail2ban zbanował mnie po testach</strong> - to najbardziej bolesny wariant.
+      Wizard każe sprawdzić, że logowanie rootem jest już odrzucane, a każda taka próba to nieudana
+      autoryzacja w logu. Fail2ban po instalacji przelicza wpisy z ostatniej godziny i potrafi zamknąć
+      Cię na dobę, zanim zdążysz cokolwiek kliknąć. Objaw: połączenie natychmiast odrzucone
+      (<code style="font-family:var(--mono)">Connection refused</code>), nie zawieszone. Dlatego wizard
+      wpisuje Twój adres do listy wyjątków <em>przed</em> uruchomieniem fail2ban. Jeśli mimo to Cię
+      odetnie - wejdź konsolą z panelu hostingu albo z innego adresu i odbanuj się:
+      <code style="font-family:var(--mono);color:var(--orange)">sudo fail2ban-client set sshd unbanip TWOJE_IP</code>.</li>
     </ul>
   </div>
 </section>

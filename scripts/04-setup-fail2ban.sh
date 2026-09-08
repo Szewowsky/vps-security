@@ -5,7 +5,11 @@
 # Ten skrypt:
 # 1. Instaluje Fail2ban
 # 2. Konfiguruje jail dla SSH (ban po 3 próbach na 24h)
-# 3. Uruchamia i włącza autostart
+# 3. Wpisuje IP administratora do ignoreip, żeby nie zbanować sam siebie
+# 4. Uruchamia i włącza autostart
+#
+# Uruchomienie:  sudo bash 04-setup-fail2ban.sh [IP_ADMINA]
+# Bez parametru skrypt bierze adres bieżącego połączenia SSH ($SSH_CONNECTION).
 # =============================================================================
 
 set -euo pipefail
@@ -42,6 +46,28 @@ fi
 SSH_PORT=$(grep -E "^Port " /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
 SSH_PORT=${SSH_PORT:-22}
 
+# IP administratora do ignoreip: parametr $1, inaczej adres bieżącej sesji SSH.
+# Bez tego fail2ban przelicza historyczne nieudane logowania z ostatniej godziny
+# (w tym Twoje własne testy "root odrzucony") i potrafi zbanować Cię od razu po starcie.
+ADMIN_IP="${1:-}"
+if [[ -z "$ADMIN_IP" && -n "${SSH_CONNECTION:-}" ]]; then
+    ADMIN_IP=$(awk '{print $1}' <<<"$SSH_CONNECTION")
+fi
+if [[ -n "$ADMIN_IP" ]] && ! [[ "$ADMIN_IP" =~ ^[0-9a-fA-F:.]+(/[0-9]+)?$ ]]; then
+    warn "'$ADMIN_IP' nie wygląda na adres IP - pomijam ignoreip."
+    ADMIN_IP=""
+fi
+
+IGNORE_IP="127.0.0.1/8 ::1"
+if [[ -n "$ADMIN_IP" ]]; then
+    IGNORE_IP="$IGNORE_IP $ADMIN_IP"
+    info "ignoreip: dopisuję adres administratora ($ADMIN_IP)."
+else
+    warn "Nie znam adresu administratora - ignoreip obejmie tylko localhost."
+    warn "Jeśli testowałeś logowanie rootem, ryzykujesz ban własnego IP na ${BAN_HOURS:-24}h."
+    warn "Możesz uruchomić ponownie: sudo bash $0 TWOJE_PUBLICZNE_IP"
+fi
+
 # Konfiguracja jail
 JAIL_LOCAL="/etc/fail2ban/jail.local"
 
@@ -72,6 +98,9 @@ BAN_TIME=$((BAN_HOURS * 3600))
 
 cat > "$JAIL_LOCAL" << EOF
 [DEFAULT]
+# Adresy, których fail2ban nigdy nie banuje (localhost + administrator)
+ignoreip = ${IGNORE_IP}
+
 # Ban na ${BAN_HOURS}h
 bantime = ${BAN_TIME}
 
@@ -91,7 +120,7 @@ filter = sshd
 logpath = /var/log/auth.log
 EOF
 
-info "Konfiguracja zapisana: ban po $MAX_RETRY próbach na ${BAN_HOURS}h."
+info "Konfiguracja zapisana: ban po $MAX_RETRY próbach na ${BAN_HOURS}h (ignoreip: ${IGNORE_IP})."
 
 # Restart fail2ban
 systemctl enable fail2ban 2>/dev/null
@@ -103,6 +132,10 @@ if fail2ban-client status sshd &>/dev/null; then
     info "Fail2ban działa."
     echo ""
     fail2ban-client status sshd
+    if [[ -n "$ADMIN_IP" ]] && fail2ban-client status sshd 2>/dev/null | grep -q -- "$ADMIN_IP"; then
+        warn "Twój adres $ADMIN_IP jest na liście zbanowanych! Odbanuj go TERAZ, póki masz sesję:"
+        echo "  fail2ban-client set sshd unbanip $ADMIN_IP"
+    fi
 else
     error "Problem z uruchomieniem jail sshd."
     echo "Sprawdź logi: journalctl -u fail2ban"
