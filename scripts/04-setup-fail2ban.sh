@@ -3,10 +3,9 @@
 # 04 - Konfiguracja Fail2ban
 # =============================================================================
 # Ten skrypt:
-# 1. Instaluje Fail2ban
-# 2. Konfiguruje jail dla SSH (ban po 3 próbach na 24h)
-# 3. Wpisuje IP administratora do ignoreip, żeby nie zbanować sam siebie
-# 4. Uruchamia i włącza autostart
+# 1. Zapisuje jail dla SSH (ban po 3 próbach na 24h) z IP administratora w ignoreip
+# 2. DOPIERO POTEM instaluje Fail2ban (pakiet startuje jail już przy instalacji)
+# 3. Uruchamia i włącza autostart
 #
 # Uruchomienie:  sudo bash 04-setup-fail2ban.sh [IP_ADMINA]
 # Bez parametru skrypt bierze adres bieżącego połączenia SSH ($SSH_CONNECTION).
@@ -33,14 +32,12 @@ echo "  Krok 4: Konfiguracja Fail2ban"
 echo "============================================"
 echo ""
 
-# Instaluj jeśli brak
-if ! command -v fail2ban-client &>/dev/null; then
-    apt-get update -qq
-    apt-get install -y -qq fail2ban
-    info "Fail2ban zainstalowany."
-else
-    info "Fail2ban już zainstalowany."
-fi
+# UWAGA: instalacja pakietu jest CELOWO po zapisaniu jail.local (niżej).
+# Pakiet uruchamia jail sshd z domyślną konfiguracją już w trakcie instalacji
+# i potrafi zbanować administratora w oknie przed naszym restartem.
+# dpkg nie nadpisuje istniejącego jail.local, więc zapis PRZED instalacją jest bezpieczny.
+
+mkdir -p /etc/fail2ban
 
 # Sprawdź port SSH
 SSH_PORT=$(grep -E "^Port " /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
@@ -121,6 +118,16 @@ logpath = /var/log/auth.log
 EOF
 
 info "Konfiguracja zapisana: ban po $MAX_RETRY próbach na ${BAN_HOURS}h (ignoreip: ${IGNORE_IP})."
+
+# Instaluj jeśli brak - dopiero teraz, z gotowym jail.local
+if ! command -v fail2ban-client &>/dev/null; then
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -qq
+    apt-get install -y -qq fail2ban
+    info "Fail2ban zainstalowany."
+else
+    info "Fail2ban już zainstalowany."
+fi
 
 # Restart fail2ban
 systemctl enable fail2ban 2>/dev/null

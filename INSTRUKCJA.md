@@ -212,6 +212,13 @@ sudo nano /etc/fail2ban/jail.local
 # w sekcji [DEFAULT] dopisz:
 # ignoreip = 127.0.0.1/8 ::1 TWOJE_IP
 sudo systemctl restart fail2ban
+```
+
+Jeśli robisz to ręcznie od zera: zapisz `/etc/fail2ban/jail.local` z `ignoreip` **przed**
+`apt-get install fail2ban`. Pakiet uruchamia jail już w trakcie instalacji i potrafi zbanować Cię,
+zanim zdążysz go zrestartować. Skrypt `04-setup-fail2ban.sh` robi to w tej kolejności.
+
+```bash
 sudo fail2ban-client status sshd     # ma być "Currently banned: 0"
 ```
 

@@ -587,7 +587,8 @@ tmux kill-server             # ubija wszystkie sesje naraz</pre>
       autoryzacja w logu. Fail2ban po instalacji przelicza wpisy z ostatniej godziny i potrafi zamknąć
       Cię na dobę, zanim zdążysz cokolwiek kliknąć. Objaw: połączenie natychmiast odrzucone
       (<code style="font-family:var(--mono)">Connection refused</code>), nie zawieszone. Dlatego wizard
-      wpisuje Twój adres do listy wyjątków <em>przed</em> uruchomieniem fail2ban. Jeśli mimo to Cię
+      wpisuje Twój adres do listy wyjątków <em>przed instalacją</em> fail2ban - nie tylko przed
+      restartem, bo pakiet uruchamia jail już w trakcie <code style="font-family:var(--mono)">apt-get install</code>. Jeśli mimo to Cię
       odetnie - wejdź konsolą z panelu hostingu albo z innego adresu i odbanuj się:
       <code style="font-family:var(--mono);color:var(--orange)">sudo fail2ban-client set sshd unbanip TWOJE_IP</code>.</li>
     </ul>

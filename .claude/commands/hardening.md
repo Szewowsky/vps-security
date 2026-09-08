@@ -270,26 +270,27 @@ starcie**. Objaw: `ssh: connect to host IP port PORT: Connection refused` (nie t
 wstawia REJECT). Odzyskanie dostępu wymaga wtedy wejścia z innego adresu (ProxyJump przez inny serwer,
 konsola w panelu hostingu) i `sudo fail2ban-client set sshd unbanip TWOJE_IP`.
 
-Dlatego **przed restartem fail2ban** ustal publiczne IP administratora i wpisz je do `ignoreip`.
-Kolejność źródeł: zapytaj użytkownika o jego publiczne IP, a jeśli go nie zna - weź adres, z którego
+Dlatego **przed instalacją fail2ban** ustal publiczne IP administratora i wpisz je do `ignoreip`.
+Sama kolejność "najpierw `apt-get install`, potem `jail.local`, potem restart" NIE wystarcza: pakiet
+uruchamia jail `sshd` z domyślną konfiguracją już w trakcie instalacji, więc ban może paść w oknie
+między instalacją a Twoim restartem (sprawdzone na czystym VPS 2026-09-08). Zapisz `jail.local`
+**zanim** pakiet istnieje - dpkg nie nadpisuje tego pliku, a fail2ban czyta go przy pierwszym starcie.
+
+Kolejność źródeł IP: zapytaj użytkownika o jego publiczne IP, a jeśli go nie zna - weź adres, z którego
 przyszło bieżące połączenie SSH (`echo $SSH_CONNECTION | awk '{print $1}'`, ewentualnie
 `curl -s https://api.ipify.org` z jego komputera).
-
-```bash
-ssh -p PORT USER@IP "sudo apt-get update -qq"
-ssh -p PORT USER@IP "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq fail2ban"
-```
 
 Odczytaj IP administratora (to samo połączenie, z którego pracujesz):
 ```bash
 ssh -p PORT USER@IP "echo \$SSH_CONNECTION | awk '{print \$1}'"
 ```
 
-Konfiguracja - WAŻNE: wstaw FAKTYCZNY numer portu SSH (np. 22) i FAKTYCZNE IP administratora,
-nie placeholdery. Jeśli IP administratora jest dynamiczne, powiedz to użytkownikowi wprost: wpis
-z czasem stanie się bezużyteczny (ale nie szkodliwy), a zmienia się go w `/etc/fail2ban/jail.local`.
+**Krok 4a - konfiguracja PRZED instalacją.** WAŻNE: wstaw FAKTYCZNY numer portu SSH (np. 22)
+i FAKTYCZNE IP administratora, nie placeholdery. Jeśli IP administratora jest dynamiczne, powiedz to
+użytkownikowi wprost: wpis z czasem stanie się bezużyteczny (ale nie szkodliwy), a zmienia się go
+w `/etc/fail2ban/jail.local`.
 ```bash
-ssh -p PORT USER@IP "sudo bash -c 'cat > /etc/fail2ban/jail.local << JAILEOF
+ssh -p PORT USER@IP "sudo mkdir -p /etc/fail2ban && sudo bash -c 'cat > /etc/fail2ban/jail.local << JAILEOF
 [DEFAULT]
 ignoreip = 127.0.0.1/8 ::1 IP_ADMINA
 bantime = 86400
@@ -303,6 +304,14 @@ port = FAKTYCZNY_NUMER_PORTU
 filter = sshd
 logpath = /var/log/auth.log
 JAILEOF'"
+ssh -p PORT USER@IP "grep -c 'IP_ADMINA' /etc/fail2ban/jail.local"
+```
+Oczekiwane `1`. Dopiero teraz:
+
+**Krok 4b - instalacja i start.**
+```bash
+ssh -p PORT USER@IP "sudo apt-get update -qq"
+ssh -p PORT USER@IP "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq fail2ban"
 ssh -p PORT USER@IP "sudo systemctl enable fail2ban"
 ssh -p PORT USER@IP "sudo systemctl restart fail2ban"
 ```
